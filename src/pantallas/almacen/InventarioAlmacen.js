@@ -4,7 +4,6 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal, S
 
 const categorias = ['Poliéster', 'Nylon', 'Texturizados', 'Otros'];
 
-// El almacén agrega productos y edita sus datos y stock (RF06)
 export default function InventarioAlmacen() {
   const [productos, setProductos] = useState([
     { id: '1', nombre: 'Hilo Poliéster 150D', descripcion: 'Alta tenacidad para costura industrial', precio: 12.5, categoria: 'Poliéster', presentacion: 'Cono x 5 kg', stock: 240 },

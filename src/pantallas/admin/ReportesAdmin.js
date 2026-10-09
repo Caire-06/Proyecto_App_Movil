@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 
-// Reportes solo visual con datos fijos de ejemplo
 const datos = {
   Semana: { total: 'S/ 890', pedidos: 6, ticket: 'S/ 148', top: 'Hilo Poliéster 150D' },
   Mes: { total: 'S/ 3420', pedidos: 21, ticket: 'S/ 163', top: 'Hilo Nylon Industrial' },

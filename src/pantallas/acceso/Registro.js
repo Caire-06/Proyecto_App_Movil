@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { agregarUsuario, inicializar } from '../../guardado/guardadoAcceso';
 
-// Pantalla de registro de usuarios
 export default function Registro({ navigation }) {
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');

@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-// Historial de compras (se implementa en el siguiente avance)
 export default function Compras() {
   return (
     <View style={styles.fondo}>

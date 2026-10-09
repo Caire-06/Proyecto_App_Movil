@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 
-// Panel principal del admin, solo visual con datos fijos
 export default function DashboardAdmin() {
   return (
     <View style={styles.fondo}>

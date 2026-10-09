@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView } from 'react-native';
 
-// Datos fijos de ejemplo, solo visual
 const hilos = [
   { id: '1', nombre: 'Hilo Poliéster 150D', unidad: 'Cono x 5 kg', precio: 12.5, foto: require('../../../assets/hilo-polieter150.jpg') },
   { id: '2', nombre: 'Hilo Nylon Industrial', unidad: 'Cono x 5 kg', precio: 15.0, foto: require('../../../assets/hilo-nylon.jpg') },
@@ -12,7 +11,6 @@ const hilos = [
 
 const categorias = ['Todos', 'Poliéster', 'Nylon', 'Texturizados', 'Otros'];
 
-// Pantalla principal de inicio
 export default function Inicio({ navigation }) {
   return (
     <View style={styles.fondo}>

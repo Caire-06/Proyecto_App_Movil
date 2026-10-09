@@ -19,7 +19,6 @@ import Perfil from '../pantallas/principal/Perfil';
 const Pila = createStackNavigator();
 const Pestanas = createBottomTabNavigator();
 
-// Pestañas principales que ve el usuario
 function Principal() {
   return (
     <Pestanas.Navigator
@@ -78,7 +77,6 @@ function Principal() {
   );
 }
 
-// Pestañas del administrador: productos, ventas y usuarios
 function Admin() {
   return (
     <Pestanas.Navigator
@@ -128,7 +126,6 @@ function Admin() {
   );
 }
 
-// Pestañas del almacén: panel e inventario
 function Almacen() {
   return (
     <Pestanas.Navigator
@@ -160,7 +157,6 @@ function Almacen() {
   );
 }
 
-// Flujo de acceso + principal
 export default function Navegador() {
   return (
     <Pila.Navigator screenOptions={{ headerShown: false }}>

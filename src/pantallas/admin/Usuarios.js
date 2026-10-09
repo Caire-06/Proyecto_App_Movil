@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
 import { obtenerUsuarios, agregarUsuario, eliminarUsuario, actualizarUsuario, cerrarSesion } from '../../guardado/guardadoAcceso';
 
-// El admin agrega y edita usuarios con modales
 export default function Usuarios({ navigation }) {
   const [usuarios, setUsuarios] = useState([]);
   const [modalAgregar, setModalAgregar] = useState(false);

@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View, Image } from 'react-native';
 import { inicializar } from '../../guardado/guardadoAcceso';
 
-// Pantalla de carga de SAUTEX, pasa sola al login
 export default function Carga({ navigation }) {
   useEffect(() => {
     inicializar();

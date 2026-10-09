@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-// Carrito de compras (se implementa en el siguiente avance)
 export default function Carrito() {
   return (
     <View style={styles.fondo}>

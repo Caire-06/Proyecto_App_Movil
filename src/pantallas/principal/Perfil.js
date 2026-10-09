@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { obtenerSesion, actualizarUsuario, guardarSesion, cerrarSesion } from '../../guardado/guardadoAcceso';
 
-// El usuario ve y modifica sus datos y su contraseña
 export default function Perfil({ navigation }) {
   const [correo, setCorreo] = useState('');
   const [foto, setFoto] = useState('');

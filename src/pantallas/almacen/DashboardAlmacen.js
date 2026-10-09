@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { cerrarSesion } from '../../guardado/guardadoAcceso';
 
-// Panel del almacén, solo visual con datos fijos
 export default function DashboardAlmacen({ navigation }) {
   const salir = async () => {
     await cerrarSesion();

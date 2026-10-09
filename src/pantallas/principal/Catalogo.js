@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-// Catálogo de hilos (se implementa en el siguiente avance)
 export default function Catalogo() {
   return (
     <View style={styles.fondo}>

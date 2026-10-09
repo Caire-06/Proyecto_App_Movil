@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const CLAVE_USUARIOS = 'sautex_usuarios';
 const CLAVE_SESION = 'sautex_sesion';
 
-// Cuentas iniciales: admin gestiona, almacen es personal interno
 const porDefecto = [
   {
     nombre: 'Admin',
@@ -25,7 +24,6 @@ const porDefecto = [
   },
 ];
 
-// Crea las cuentas iniciales solo la primera vez
 export async function inicializar() {
   const actual = await AsyncStorage.getItem(CLAVE_USUARIOS);
   if (actual === null) {

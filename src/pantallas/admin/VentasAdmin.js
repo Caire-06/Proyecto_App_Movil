@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View, TouchableOpacity, FlatList } from 'react-native';
 
-// Ventas solo visual, datos fijos de ejemplo
 const ventas = [
   { id: 'VTA-034', cliente: 'Carmen Ríos', fecha: '14/10/2026', total: 890 },
   { id: 'VTA-033', cliente: 'Pedro Huamán', fecha: '11/10/2026', total: 265 },

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { buscarUsuario, guardarSesion, inicializar } from '../../guardado/guardadoAcceso';
 
-// Pantalla de inicio de sesión
 export default function InicioSesion({ navigation }) {
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
