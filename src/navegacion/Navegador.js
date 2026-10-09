@@ -10,6 +10,7 @@ import DashboardAdmin from '../pantallas/admin/DashboardAdmin';
 import ReportesAdmin from '../pantallas/admin/ReportesAdmin';
 import DashboardAlmacen from '../pantallas/almacen/DashboardAlmacen';
 import InventarioAlmacen from '../pantallas/almacen/InventarioAlmacen';
+import AgregarProducto from '../pantallas/almacen/AgregarProducto';
 import Inicio from '../pantallas/principal/Inicio';
 import Catalogo from '../pantallas/principal/Catalogo';
 import Carrito from '../pantallas/principal/Carrito';
@@ -150,6 +151,15 @@ function Almacen() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cube-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Pestanas.Screen
+        name="Agregar"
+        component={AgregarProducto}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="add-circle" size={size} color={color} />
           ),
         }}
       />

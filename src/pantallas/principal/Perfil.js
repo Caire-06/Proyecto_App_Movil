@@ -13,6 +13,8 @@ export default function Perfil({ navigation }) {
   const [direccion, setDireccion] = useState('');
   const [claveActual, setClaveActual] = useState('');
   const [claveNueva, setClaveNueva] = useState('');
+  const [verActual, setVerActual] = useState(false);
+  const [verNueva, setVerNueva] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
   const cargar = async () => {
@@ -104,9 +106,19 @@ export default function Perfil({ navigation }) {
 
         <Text style={styles.seccion}>Cambiar contraseña</Text>
         <Text style={styles.etiqueta}>Contraseña actual</Text>
-        <TextInput style={styles.input} value={claveActual} onChangeText={setClaveActual} secureTextEntry={true} />
+        <View style={styles.cajaClave}>
+          <TextInput style={styles.inputClave} value={claveActual} onChangeText={setClaveActual} secureTextEntry={!verActual} />
+          <TouchableOpacity onPress={() => setVerActual(!verActual)}>
+            <Ionicons name={verActual ? 'eye-off' : 'eye'} size={20} color="#8A93A6" />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.etiqueta}>Nueva contraseña</Text>
-        <TextInput style={styles.input} value={claveNueva} onChangeText={setClaveNueva} secureTextEntry={true} />
+        <View style={styles.cajaClave}>
+          <TextInput style={styles.inputClave} value={claveNueva} onChangeText={setClaveNueva} secureTextEntry={!verNueva} />
+          <TouchableOpacity onPress={() => setVerNueva(!verNueva)}>
+            <Ionicons name={verNueva ? 'eye-off' : 'eye'} size={20} color="#8A93A6" />
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.botonAzul} onPress={cambiarClave}>
           <Text style={styles.textoBoton}>Cambiar contraseña</Text>
         </TouchableOpacity>
@@ -174,6 +186,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
+    fontSize: 14,
+  },
+  cajaClave: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8ECF4',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  inputClave: {
+    flex: 1,
+    paddingVertical: 12,
     fontSize: 14,
   },
   botonAzul: {

@@ -13,6 +13,7 @@ export default function Usuarios({ navigation }) {
   const [apellido, setApellido] = useState('');
   const [correo, setCorreo] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
   const [clave, setClave] = useState('');
   const [rol, setRol] = useState('almacen');
   const [mensaje, setMensaje] = useState('');
@@ -20,6 +21,7 @@ export default function Usuarios({ navigation }) {
   const [editNombre, setEditNombre] = useState('');
   const [editApellido, setEditApellido] = useState('');
   const [editTelefono, setEditTelefono] = useState('');
+  const [editDireccion, setEditDireccion] = useState('');
   const [editClave, setEditClave] = useState('');
   const [editRol, setEditRol] = useState('cliente');
 
@@ -45,12 +47,16 @@ export default function Usuarios({ navigation }) {
       setMensaje('La clave debe tener 6 caracteres');
       return;
     }
+    if (direccion.trim().length < 5) {
+      setMensaje('Ingrese la dirección');
+      return;
+    }
     const ok = await agregarUsuario({
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       correo: correo.trim(),
       telefono,
-      direccion: '',
+      direccion: direccion.trim(),
       clave,
       rol,
     });
@@ -62,6 +68,7 @@ export default function Usuarios({ navigation }) {
     setApellido('');
     setCorreo('');
     setTelefono('');
+    setDireccion('');
     setClave('');
     setMensaje('');
     setModalAgregar(false);
@@ -72,6 +79,7 @@ export default function Usuarios({ navigation }) {
     setEditNombre(usuario.nombre);
     setEditApellido(usuario.apellido);
     setEditTelefono(usuario.telefono);
+    setEditDireccion(usuario.direccion || '');
     setEditClave('');
     setEditRol(usuario.rol);
     setUsuarioEditado(usuario);
@@ -84,6 +92,7 @@ export default function Usuarios({ navigation }) {
         nombre: editNombre.trim(),
         apellido: editApellido.trim(),
         telefono: editTelefono,
+        direccion: editDireccion.trim(),
         rol: editRol,
       };
       if (editClave !== '') {
@@ -113,7 +122,7 @@ export default function Usuarios({ navigation }) {
   return (
     <View style={styles.fondo}>
       <View style={styles.cabecera}>
-        <Text style={styles.titulo}>Cuentas</Text>
+        <Text style={styles.titulo}>Gestión de usuarios</Text>
         <TouchableOpacity onPress={salir}>
           <Text style={styles.salir}>Salir</Text>
         </TouchableOpacity>
@@ -150,6 +159,7 @@ export default function Usuarios({ navigation }) {
             <TextInput style={styles.input} placeholder="Apellidos" value={apellido} onChangeText={setApellido} />
             <TextInput style={styles.input} placeholder="Correo" value={correo} onChangeText={setCorreo} keyboardType="email-address" />
             <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="numeric" maxLength={9} />
+            <TextInput style={styles.input} placeholder="Dirección" value={direccion} onChangeText={setDireccion} />
             <TextInput style={styles.input} placeholder="Clave" value={clave} onChangeText={setClave} secureTextEntry={true} />
             <View style={styles.fila}>
               {['cliente', 'almacen', 'admin'].map((r) => (
@@ -175,9 +185,11 @@ export default function Usuarios({ navigation }) {
         <View style={styles.modalFondo}>
           <View style={styles.modalCaja}>
             <Text style={styles.modalTitulo}>Editar usuario</Text>
+            <Text style={styles.correoFijo}>{usuarioEditado?.correo}</Text>
             <TextInput style={styles.input} placeholder="Nombres" value={editNombre} onChangeText={setEditNombre} />
             <TextInput style={styles.input} placeholder="Apellidos" value={editApellido} onChangeText={setEditApellido} />
             <TextInput style={styles.input} placeholder="Teléfono" value={editTelefono} onChangeText={setEditTelefono} keyboardType="numeric" maxLength={9} />
+            <TextInput style={styles.input} placeholder="Dirección" value={editDireccion} onChangeText={setEditDireccion} />
             <TextInput style={styles.input} placeholder="Nueva contraseña" value={editClave} onChangeText={setEditClave} secureTextEntry={true} />
             <View style={styles.fila}>
               {['cliente', 'almacen', 'admin'].map((r) => (
@@ -350,6 +362,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
     color: '#0D1B3E',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  correoFijo: {
+    fontSize: 13,
+    color: '#8A93A6',
     textAlign: 'center',
     marginBottom: 10,
   },
