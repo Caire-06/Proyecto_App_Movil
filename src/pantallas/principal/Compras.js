@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -78,59 +77,6 @@ export default function Compras({ navigation }) {
     }, [])
   );
 
-  // Simula una compra con productos y montos variados
-  const simularNuevaCompra = async () => {
-    const catalogo = [
-      { nombre: 'Hilo Poliéster 150D', precioUnit: 12.5 },
-      { nombre: 'Hilo Nylon Industrial', precioUnit: 15.0 },
-      { nombre: 'Hilo Poliéster 300D', precioUnit: 18.5 },
-      { nombre: 'Hilo Texturizado 75D', precioUnit: 9.8 },
-    ];
-
-    // Selecciona 1 o 2 tipos de hilo al azar
-    const cantidadTipos = Math.random() > 0.5 ? 2 : 1;
-    const itemsComprados = [];
-    let totalCalculado = 0;
-
-    for (let i = 0; i < cantidadTipos; i++) {
-      const hiloAzar = catalogo[Math.floor(Math.random() * catalogo.length)];
-      if (!itemsComprados.some((it) => it.nombre === hiloAzar.nombre)) {
-        const cant = Math.floor(Math.random() * 4) + 1;
-        const sub = hiloAzar.precioUnit * cant;
-        itemsComprados.push({
-          nombre: hiloAzar.nombre,
-          cantidad: cant,
-          precioUnit: hiloAzar.precioUnit,
-          subtotal: sub,
-        });
-        totalCalculado += sub;
-      }
-    }
-
-    const idNuevo = `PED-${Math.floor(1000 + Math.random() * 9000)}`;
-    const formasPago = ['Yape', 'Plin', 'Transferencia BCP', 'Tarjeta de Crédito'];
-    const pagoAzar = formasPago[Math.floor(Math.random() * formasPago.length)];
-
-    const nuevoPedido = {
-      id: idNuevo,
-      fecha: new Date().toLocaleDateString('es-PE'),
-      estado: 'En camino',
-      colorEstado: '#F39C12',
-      metodoPago: pagoAzar,
-      articulos: itemsComprados,
-      total: totalCalculado,
-    };
-
-    try {
-      const listaActualizada = [nuevoPedido, ...pedidos];
-      await AsyncStorage.setItem('@historial_pedidos', JSON.stringify(listaActualizada));
-      setPedidos(listaActualizada);
-      Alert.alert('¡Compra registrada!', `Se generó el pedido ${idNuevo} por un total de S/ ${totalCalculado.toFixed(2)}.`);
-    } catch (e) {
-      console.log('Error al guardar pedido:', e);
-    }
-  };
-
   const abrirRecibo = (pedido) => {
     setPedidoSeleccionado(pedido);
     setModalVisible(true);
@@ -143,16 +89,10 @@ export default function Compras({ navigation }) {
 
   return (
     <View style={styles.fondo}>
-      {/* Cabecera */}
+      {/* Cabecera limpia */}
       <View style={styles.cabecera}>
-        <View>
-          <Text style={styles.tituloCabecera}>Mis Compras</Text>
-          <Text style={styles.subtituloCabecera}>Historial de pedidos realizados</Text>
-        </View>
-        <TouchableOpacity style={styles.botonSimular} onPress={simularNuevaCompra}>
-          <Ionicons name="add-circle-outline" size={18} color="#1E65C0" />
-          <Text style={styles.textoBotonSimular}>+ Probar compra</Text>
-        </TouchableOpacity>
+        <Text style={styles.tituloCabecera}>Mis Compras</Text>
+        <Text style={styles.subtituloCabecera}>Historial de pedidos realizados</Text>
       </View>
 
       {/* Filtros por estado */}
@@ -292,9 +232,6 @@ const styles = StyleSheet.create({
     paddingTop: 45,
   },
   cabecera: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: '#fff',
     paddingHorizontal: 18,
     paddingVertical: 14,
@@ -310,20 +247,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8A93A6',
     marginTop: 2,
-  },
-  botonSimular: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F5FD',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    gap: 4,
-  },
-  textoBotonSimular: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#1E65C0',
   },
   filaFiltros: {
     flexDirection: 'row',
