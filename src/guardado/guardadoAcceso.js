@@ -70,6 +70,11 @@ export async function buscarUsuario(correo, clave) {
   return lista.find((u) => u.correo === correo && u.clave === clave) || null;
 }
 
+export async function buscarPorCorreo(correo) {
+  const lista = await obtenerUsuarios();
+  return lista.find((u) => u.correo === correo) || null;
+}
+
 export async function guardarSesion(usuario) {
   await AsyncStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
 }

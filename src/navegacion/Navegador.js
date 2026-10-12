@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Carga from '../pantallas/acceso/Carga';
 import InicioSesion from '../pantallas/acceso/InicioSesion';
 import Registro from '../pantallas/acceso/Registro';
+import Recuperar from '../pantallas/acceso/Recuperar';
 import Usuarios from '../pantallas/admin/Usuarios';
 import VentasAdmin from '../pantallas/admin/VentasAdmin';
 import DashboardAdmin from '../pantallas/admin/DashboardAdmin';
@@ -173,6 +174,7 @@ export default function Navegador() {
       <Pila.Screen name="Carga" component={Carga} />
       <Pila.Screen name="InicioSesion" component={InicioSesion} />
       <Pila.Screen name="Registro" component={Registro} />
+      <Pila.Screen name="Recuperar" component={Recuperar} />
       <Pila.Screen name="Admin" component={Admin} />
       <Pila.Screen name="Almacen" component={Almacen} />
       <Pila.Screen name="Principal" component={Principal} />

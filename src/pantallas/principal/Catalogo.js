@@ -1,14 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -51,7 +42,7 @@ const hilosIniciales = [
   },
 ];
 
-const categorias = ['Todos', 'Poliéster', 'Nylon', 'Texturizado'];
+const categorias = ['Todos', 'Poliéster', 'Nylon', 'Texturizados'];
 const PRODUCTOS_CARRITO = '@productos_carrito';
 
 export async function agregarAlCarrito(producto) {
@@ -99,14 +90,9 @@ export default function Catalogo() {
 
     return productos.filter((producto) => {
       const coincideNombre = producto.nombre.toLowerCase().includes(texto);
-      
-    const coincideCategoria =
-      categoriaSeleccionada === 'Todos' ||
-      producto.categoria ===
-        (categoriaSeleccionada === 'Texturizado'
-          ? 'Texturizados'
-          : categoriaSeleccionada);
-
+      const coincideCategoria =
+        categoriaSeleccionada === 'Todos' ||
+        producto.categoria === categoriaSeleccionada;
 
       return coincideNombre && coincideCategoria;
     });
@@ -132,13 +118,9 @@ export default function Catalogo() {
           onChangeText={setBusqueda}
           autoCapitalize="none"
           returnKeyType="search"
-          accessibilityLabel="Buscar productos por nombre"
         />
         {busqueda.length > 0 && (
-          <TouchableOpacity
-            onPress={() => setBusqueda('')}
-            accessibilityLabel="Limpiar búsqueda"
-          >
+          <TouchableOpacity onPress={() => setBusqueda('')}>
             <Ionicons name="close-circle" size={20} color="#8A93A6" />
           </TouchableOpacity>
         )}
@@ -158,20 +140,10 @@ export default function Catalogo() {
               key={categoria}
               style={[styles.chipCategoria, seleccionada && styles.chipSeleccionado]}
               onPress={() => setCategoriaSeleccionada(categoria)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: seleccionada }}
             >
-            <Text
-              style={[
-                styles.textoCategoria,
-                seleccionada && styles.textoCategoriaSeleccionada,
-                categoria === 'Texturizado' &&
-                  styles.textoCategoriaTexturizado,
-              ]}
-            >
-              {categoria}
-            </Text>
-
+              <Text style={[styles.textoCategoria, seleccionada && styles.textoCategoriaSeleccionada]}>
+                {categoria}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -217,8 +189,6 @@ export default function Catalogo() {
                     style={[styles.botonMas, sinStock && styles.botonDeshabilitado]}
                     onPress={() => manejarAgregar(producto)}
                     disabled={sinStock}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Agregar ${producto.nombre} al carrito`}
                   >
                     <Ionicons
                       name={sinStock ? 'close' : 'add'}
@@ -276,55 +246,30 @@ const styles = StyleSheet.create({
   scrollCategorias: {
     flexGrow: 0,
     flexShrink: 0,
-    height: 104,
     marginTop: 10,
+    marginBottom: 4,
   },
   listaCategorias: {
     paddingHorizontal: 18,
     alignItems: 'center',
     gap: 8,
   },
-  /*chipCategoria: {
-    height: 88,
-    width: 92,
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 26,
-    paddingHorizontal: 5,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DCE3ED',
-  },*/
-
   chipCategoria: {
-  height: 68,
-  width: 76,
-  flexShrink: 0,
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: 22,
-  paddingHorizontal: 5,
-  backgroundColor: '#FFFFFF',
-  borderWidth: 1,
-  borderColor: '#DCE3ED',
-},
-
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#1E65C0',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   chipSeleccionado: {
     backgroundColor: '#1E65C0',
     borderColor: '#1E65C0',
   },
   textoCategoria: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  textoCategoriaTexturizado: {
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-    includeFontPadding: false,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E65C0',
   },
   textoCategoriaSeleccionada: {
     color: '#fff',

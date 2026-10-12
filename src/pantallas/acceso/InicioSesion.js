@@ -83,6 +83,10 @@ export default function InicioSesion({ navigation }) {
             <Text style={styles.textoBoton}>Iniciar sesión</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity onPress={() => navigation.navigate('Recuperar')}>
+            <Text style={styles.enlaceOlvidado}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
             <Text style={styles.enlace}>
               ¿Sin cuenta? <Text style={styles.enlaceAzul}>Regístrate aquí</Text>
@@ -194,6 +198,13 @@ const styles = StyleSheet.create({
   enlaceAzul: {
     color: '#1E65C0',
     fontWeight: 'bold',
+  },
+  enlaceOlvidado: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E65C0',
+    marginTop: 12,
   },
   mensaje: {
     textAlign: 'center',

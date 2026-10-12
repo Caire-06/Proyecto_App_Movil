@@ -9,8 +9,6 @@ const hilos = [
   { id: '4', nombre: 'Hilo Texturizado 75D', unidad: 'Bobina x 3 kg', precio: 9.8, foto: require('../../../assets/hilo-texturizado75.jpg') },
 ];
 
-const categorias = ['Todos', 'Poliéster', 'Nylon', 'Texturizados', 'Otros'];
-
 export default function Inicio({ navigation }) {
   return (
     <View style={styles.fondo}>
@@ -37,19 +35,6 @@ export default function Inicio({ navigation }) {
           >
             <Text style={styles.textoBotonBanner}>Ver catálogo</Text>
           </TouchableOpacity>
-        </View>
-
-        <Text style={styles.seccion}>Categorías</Text>
-        <View style={styles.filaCategorias}>
-          {categorias.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={styles.categoria}
-              onPress={() => navigation.navigate('Catalogo')}
-            >
-              <Text style={styles.textoCategoria}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
         </View>
 
         <Text style={styles.seccion}>Destacados</Text>
@@ -156,24 +141,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 18,
     marginTop: 15,
     marginBottom: 10,
-  },
-  filaCategorias: {
-    flexDirection: 'row',
-    gap: 8,
-    marginHorizontal: 18,
-  },
-  categoria: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#1E65C0',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  textoCategoria: {
-    fontSize: 12,
-    color: '#1E65C0',
-    fontWeight: 'bold',
   },
   grilla: {
     flexDirection: 'row',
