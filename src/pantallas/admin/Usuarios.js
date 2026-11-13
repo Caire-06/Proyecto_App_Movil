@@ -1,7 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
-import { obtenerUsuarios, agregarUsuario, eliminarUsuario, actualizarUsuario, cerrarSesion } from '../../guardado/guardadoAcceso';
+import { cerrarSesion } from '../../guardado/guardadoAcceso';
+import { listarUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../../servicios/api';
+
+const roles = [
+  { valor: 'cliente', texto: 'Cliente' },
+  { valor: 'almacen', texto: 'Almacén' },
+  { valor: 'admin', texto: 'Administrador' },
+];
+
+const nombreRol = (valor) => {
+  const encontrado = roles.find((r) => r.valor === valor);
+  return encontrado ? encontrado.texto : valor;
+};
 
 export default function Usuarios({ navigation }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -26,8 +38,12 @@ export default function Usuarios({ navigation }) {
   const [editRol, setEditRol] = useState('cliente');
 
   const cargar = async () => {
-    const lista = await obtenerUsuarios();
-    setUsuarios(lista);
+    try {
+      const lista = await listarUsuarios();
+      setUsuarios(lista);
+    } catch (error) {
+      setMensaje(error.message || 'No se pudieron cargar los usuarios');
+    }
   };
 
   useEffect(() => {
@@ -35,6 +51,7 @@ export default function Usuarios({ navigation }) {
   }, []);
 
   const agregar = async () => {
+    setMensaje('');
     if (nombre.trim().length < 2 || apellido.trim().length < 2) {
       setMensaje('Ingrese nombre y apellido');
       return;
@@ -51,34 +68,36 @@ export default function Usuarios({ navigation }) {
       setMensaje('Ingrese la dirección');
       return;
     }
-    const ok = await agregarUsuario({
-      nombre: nombre.trim(),
-      apellido: apellido.trim(),
-      correo: correo.trim(),
-      telefono,
-      direccion: direccion.trim(),
-      clave,
-      rol,
-    });
-    if (!ok) {
-      setMensaje('Ese correo ya existe');
-      return;
+
+    try {
+      await crearUsuario({
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        correo: correo.trim(),
+        telefono,
+        direccion: direccion.trim(),
+        clave,
+        rol,
+      });
+      setNombre('');
+      setApellido('');
+      setCorreo('');
+      setTelefono('');
+      setDireccion('');
+      setClave('');
+      setMensaje('');
+      setModalAgregar(false);
+      await cargar();
+    } catch (error) {
+      setMensaje(error.message || 'No se pudo crear el usuario');
     }
-    setNombre('');
-    setApellido('');
-    setCorreo('');
-    setTelefono('');
-    setDireccion('');
-    setClave('');
-    setMensaje('');
-    setModalAgregar(false);
-    cargar();
   };
 
   const abrirEditar = (usuario) => {
+    setMensaje('');
     setEditNombre(usuario.nombre);
     setEditApellido(usuario.apellido);
-    setEditTelefono(usuario.telefono);
+    setEditTelefono(usuario.telefono || '');
     setEditDireccion(usuario.direccion || '');
     setEditClave('');
     setEditRol(usuario.rol);
@@ -87,36 +106,59 @@ export default function Usuarios({ navigation }) {
   };
 
   const guardarEdicion = async () => {
-    if (usuarioEditado) {
-      const cambios = {
-        nombre: editNombre.trim(),
-        apellido: editApellido.trim(),
-        telefono: editTelefono,
-        direccion: editDireccion.trim(),
-        rol: editRol,
-      };
-      if (editClave !== '') {
-        cambios.clave = editClave;
-      }
-      await actualizarUsuario(usuarioEditado.correo, cambios);
+    if (!usuarioEditado) {
+      return;
+    }
+    setMensaje('');
+    if (editNombre.trim().length < 2 || editApellido.trim().length < 2) {
+      setMensaje('Ingrese nombre y apellido');
+      return;
+    }
+    if (editClave !== '' && editClave.length < 6) {
+      setMensaje('La clave debe tener 6 caracteres');
+      return;
+    }
+
+    const cambios = {
+      nombre: editNombre.trim(),
+      apellido: editApellido.trim(),
+      telefono: editTelefono,
+      direccion: editDireccion.trim(),
+      rol: editRol,
+    };
+    if (editClave !== '') {
+      cambios.clave = editClave;
+    }
+
+    try {
+      await actualizarUsuario(usuarioEditado.id, cambios);
       setModalEditar(false);
       setUsuarioEditado(null);
       setEditClave('');
-      cargar();
+      setMensaje('');
+      await cargar();
+    } catch (error) {
+      setMensaje(error.message || 'No se pudo actualizar el usuario');
     }
   };
 
-  const eliminar = async (correoBorrar) => {
-    if (correoBorrar === 'admin@sautex.com') {
+  const eliminar = async (usuario) => {
+    if (usuario.correo === 'admin@sautex.com') {
+      setMensaje('La cuenta principal del administrador no se puede eliminar');
       return;
     }
-    await eliminarUsuario(correoBorrar);
-    cargar();
+    setMensaje('');
+    try {
+      await eliminarUsuario(usuario.id);
+      await cargar();
+    } catch (error) {
+      setMensaje(error.message || 'No se pudo eliminar el usuario');
+    }
   };
 
   const salir = async () => {
     await cerrarSesion();
-    navigation.replace('InicioSesion');
+    navigation.getParent()?.replace('InicioSesion');
   };
 
   return (
@@ -128,23 +170,31 @@ export default function Usuarios({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.botonAgregar} onPress={() => setModalAgregar(true)}>
+      <TouchableOpacity
+        style={styles.botonAgregar}
+        onPress={() => {
+          setMensaje('');
+          setModalAgregar(true);
+        }}
+      >
         <Text style={styles.textoBoton}>+ Agregar usuario</Text>
       </TouchableOpacity>
 
+      {mensaje !== '' && <Text style={styles.mensaje}>{mensaje}</Text>}
+
       <FlatList
         data={usuarios}
-        keyExtractor={(item) => item.correo}
+        keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View style={styles.tarjeta}>
             <View style={styles.info}>
               <Text style={styles.nombre}>{item.nombre} {item.apellido}</Text>
-              <Text style={styles.dato}>{item.correo} - {item.rol}</Text>
+              <Text style={styles.dato}>{item.correo} - {nombreRol(item.rol)}</Text>
             </View>
             <TouchableOpacity style={styles.botonIconoAzul} onPress={() => abrirEditar(item)}>
               <Ionicons name="pencil" size={18} color="#fff" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.botonIconoRojo} onPress={() => eliminar(item.correo)}>
+            <TouchableOpacity style={styles.botonIconoRojo} onPress={() => eliminar(item)}>
               <Ionicons name="trash" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -162,9 +212,13 @@ export default function Usuarios({ navigation }) {
             <TextInput style={styles.input} placeholder="Dirección" value={direccion} onChangeText={setDireccion} />
             <TextInput style={styles.input} placeholder="Clave" value={clave} onChangeText={setClave} secureTextEntry={true} />
             <View style={styles.fila}>
-              {['cliente', 'almacen', 'admin'].map((r) => (
-                <TouchableOpacity key={r} style={[styles.rol, rol === r && styles.rolActivo]} onPress={() => setRol(r)}>
-                  <Text style={rol === r ? styles.rolTextoActivo : styles.rolTexto}>{r}</Text>
+              {roles.map((r) => (
+                <TouchableOpacity
+                  key={r.valor}
+                  style={[styles.rol, rol === r.valor && styles.rolActivo]}
+                  onPress={() => setRol(r.valor)}
+                >
+                  <Text style={rol === r.valor ? styles.rolTextoActivo : styles.rolTexto}>{r.texto}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -192,12 +246,17 @@ export default function Usuarios({ navigation }) {
             <TextInput style={styles.input} placeholder="Dirección" value={editDireccion} onChangeText={setEditDireccion} />
             <TextInput style={styles.input} placeholder="Nueva contraseña" value={editClave} onChangeText={setEditClave} secureTextEntry={true} />
             <View style={styles.fila}>
-              {['cliente', 'almacen', 'admin'].map((r) => (
-                <TouchableOpacity key={r} style={[styles.rol, editRol === r && styles.rolActivo]} onPress={() => setEditRol(r)}>
-                  <Text style={editRol === r ? styles.rolTextoActivo : styles.rolTexto}>{r}</Text>
+              {roles.map((r) => (
+                <TouchableOpacity
+                  key={r.valor}
+                  style={[styles.rol, editRol === r.valor && styles.rolActivo]}
+                  onPress={() => setEditRol(r.valor)}
+                >
+                  <Text style={editRol === r.valor ? styles.rolTextoActivo : styles.rolTexto}>{r.texto}</Text>
                 </TouchableOpacity>
               ))}
             </View>
+            {mensaje !== '' && <Text style={styles.mensaje}>{mensaje}</Text>}
             <View style={styles.filaBotones}>
               <TouchableOpacity style={styles.botonGuardar} onPress={guardarEdicion}>
                 <Text style={styles.textoBotonPequeno}>Guardar</Text>

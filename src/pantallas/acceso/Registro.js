@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { agregarUsuario, inicializar } from '../../guardado/guardadoAcceso';
+import { registrarUsuario } from '../../servicios/api';
 
 export default function Registro({ navigation }) {
   const [nombre, setNombre] = useState('');
@@ -15,6 +15,7 @@ export default function Registro({ navigation }) {
   const [verClave, setVerClave] = useState(false);
   const [verClave2, setVerClave2] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [cargando, setCargando] = useState(false);
 
   const esCorreoValido = (valor) => {
     return valor.includes('@') && valor.includes('.');
@@ -24,7 +25,13 @@ export default function Registro({ navigation }) {
     return /^[0-9]*$/.test(valor);
   };
 
+  // Registra un cliente nuevo en el backend
   const registrar = async () => {
+    if (cargando) {
+      return;
+    }
+    setMensaje('');
+
     if (nombre.trim().length < 2) {
       setMensaje('Ingrese su nombre');
       return;
@@ -53,28 +60,36 @@ export default function Registro({ navigation }) {
       setMensaje('Las contraseñas no coinciden');
       return;
     }
-    await inicializar();
-    const ok = await agregarUsuario({
-      nombre: nombre.trim(),
-      apellido: apellido.trim(),
-      correo: correo.trim(),
-      telefono,
-      direccion: direccion.trim(),
-      clave,
-      rol: 'cliente',
-    });
-    if (!ok) {
-      setMensaje('Ese correo ya está registrado');
-      return;
+
+    setCargando(true);
+    try {
+      const respuesta = await registrarUsuario({
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        correo: correo.trim(),
+        telefono,
+        direccion: direccion.trim(),
+        clave,
+      });
+
+      if (!respuesta || !respuesta.exitoso) {
+        setMensaje(respuesta?.mensaje || 'No se pudo crear la cuenta');
+        return;
+      }
+
+      setMensaje('Cuenta creada. Ahora inicie sesión');
+      setNombre('');
+      setApellido('');
+      setCorreo('');
+      setTelefono('');
+      setDireccion('');
+      setClave('');
+      setClave2('');
+    } catch (error) {
+      setMensaje(error.message || 'No se pudo crear la cuenta');
+    } finally {
+      setCargando(false);
     }
-    setMensaje('Cuenta creada. Ahora inicie sesión');
-    setNombre('');
-    setApellido('');
-    setCorreo('');
-    setTelefono('');
-    setDireccion('');
-    setClave('');
-    setClave2('');
   };
 
   return (
@@ -170,8 +185,14 @@ export default function Registro({ navigation }) {
             <Text style={styles.mensaje}>{mensaje}</Text>
           )}
 
-          <TouchableOpacity style={styles.boton} onPress={registrar}>
-            <Text style={styles.textoBoton}>Crear cuenta</Text>
+          <TouchableOpacity
+            style={[styles.boton, cargando && styles.botonDeshabilitado]}
+            onPress={registrar}
+            disabled={cargando}
+          >
+            <Text style={styles.textoBoton}>
+              {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('InicioSesion')}>
@@ -269,6 +290,9 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     marginTop: 20,
+  },
+  botonDeshabilitado: {
+    opacity: 0.6,
   },
   textoBoton: {
     color: '#fff',

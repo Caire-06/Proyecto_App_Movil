@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View, Image } from 'react-native';
-import { inicializar } from '../../guardado/guardadoAcceso';
+import { limpiarUsuariosLocales } from '../../guardado/guardadoAcceso';
 
 export default function Carga({ navigation }) {
   useEffect(() => {
-    inicializar();
+    limpiarUsuariosLocales();
     const tiempo = setTimeout(() => {
       navigation.replace('InicioSesion');
     }, 2500);

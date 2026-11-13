@@ -12,6 +12,8 @@ import ReportesAdmin from '../pantallas/admin/ReportesAdmin';
 import DashboardAlmacen from '../pantallas/almacen/DashboardAlmacen';
 import InventarioAlmacen from '../pantallas/almacen/InventarioAlmacen';
 import AgregarProducto from '../pantallas/almacen/AgregarProducto';
+import RegistrarEntrada from '../pantallas/almacen/RegistrarEntrada';
+import MovimientosAlmacen from '../pantallas/almacen/MovimientosAlmacen';
 import Inicio from '../pantallas/principal/Inicio';
 import Catalogo from '../pantallas/principal/Catalogo';
 import Carrito from '../pantallas/principal/Carrito';
@@ -135,6 +137,7 @@ function Almacen() {
         headerShown: false,
         tabBarActiveTintColor: '#1E65C0',
         tabBarInactiveTintColor: '#8A93A6',
+        tabBarLabelStyle: { fontSize: 10 },
       }}
     >
       <Pestanas.Screen
@@ -161,6 +164,24 @@ function Almacen() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="add-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Pestanas.Screen
+        name="Entradas"
+        component={RegistrarEntrada}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="arrow-down-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Pestanas.Screen
+        name="Kardex"
+        component={MovimientosAlmacen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="swap-vertical" size={size} color={color} />
           ),
         }}
       />

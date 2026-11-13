@@ -2,19 +2,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { buscarUsuario, guardarSesion, inicializar } from '../../guardado/guardadoAcceso';
+import { guardarSesion } from '../../guardado/guardadoAcceso';
+import { iniciarSesion } from '../../servicios/api';
 
 export default function InicioSesion({ navigation }) {
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
   const [verClave, setVerClave] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [cargando, setCargando] = useState(false);
 
   const esCorreoValido = (valor) => {
     return valor.includes('@') && valor.includes('.');
   };
 
+  // Inicia sesión contra el backend y guarda el token de la sesión
   const entrar = async () => {
+    if (cargando) {
+      return;
+    }
+    setMensaje('');
+
     if (correo.trim() === '' || clave.trim() === '') {
       setMensaje('Ingrese correo y contraseña');
       return;
@@ -23,19 +31,36 @@ export default function InicioSesion({ navigation }) {
       setMensaje('Ingrese un correo válido con @ y punto');
       return;
     }
-    await inicializar();
-    const usuario = await buscarUsuario(correo.trim(), clave);
-    if (usuario === null) {
-      setMensaje('Correo o contraseña incorrectos');
-      return;
-    }
-    await guardarSesion(usuario);
-    if (usuario.rol === 'admin') {
-      navigation.replace('Admin');
-    } else if (usuario.rol === 'almacen') {
-      navigation.replace('Almacen');
-    } else {
-      navigation.replace('Principal');
+
+    setCargando(true);
+    try {
+      const respuesta = await iniciarSesion(correo.trim(), clave);
+
+      if (!respuesta || !respuesta.exitoso || !respuesta.token) {
+        setMensaje(respuesta?.mensaje || 'Correo o contraseña incorrectos');
+        return;
+      }
+
+      const rol = respuesta.rol || respuesta.usuario?.rol || 'cliente';
+      const sesion = {
+        ...respuesta.usuario,
+        token: respuesta.token,
+        rol,
+      };
+
+      await guardarSesion(sesion);
+
+      if (rol === 'admin') {
+        navigation.replace('Admin');
+      } else if (rol === 'almacen') {
+        navigation.replace('Almacen');
+      } else {
+        navigation.replace('Principal');
+      }
+    } catch (error) {
+      setMensaje(error.message || 'No se pudo conectar con el servidor');
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -79,8 +104,14 @@ export default function InicioSesion({ navigation }) {
             <Text style={styles.mensaje}>{mensaje}</Text>
           )}
 
-          <TouchableOpacity style={styles.boton} onPress={entrar}>
-            <Text style={styles.textoBoton}>Iniciar sesión</Text>
+          <TouchableOpacity
+            style={[styles.boton, cargando && styles.botonDeshabilitado]}
+            onPress={entrar}
+            disabled={cargando}
+          >
+            <Text style={styles.textoBoton}>
+              {cargando ? 'Ingresando...' : 'Iniciar sesión'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Recuperar')}>
@@ -182,6 +213,9 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     marginTop: 20,
+  },
+  botonDeshabilitado: {
+    opacity: 0.6,
   },
   textoBoton: {
     color: '#fff',

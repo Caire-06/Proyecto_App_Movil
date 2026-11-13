@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { obtenerSesion, actualizarUsuario, guardarSesion, cerrarSesion } from '../../guardado/guardadoAcceso';
+import { obtenerSesion, guardarSesion, cerrarSesion } from '../../guardado/guardadoAcceso';
+import { obtenerPerfil, actualizarPerfil, cambiarClave as cambiarClaveApi } from '../../servicios/api';
 
 export default function Perfil({ navigation }) {
   const [correo, setCorreo] = useState('');
@@ -17,6 +18,7 @@ export default function Perfil({ navigation }) {
   const [verNueva, setVerNueva] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
+  // Carga los datos del que inició sesión al abrir el perfil
   const cargar = async () => {
     const sesion = await obtenerSesion();
     if (sesion) {
@@ -27,12 +29,36 @@ export default function Perfil({ navigation }) {
       setTelefono(sesion.telefono || '');
       setDireccion(sesion.direccion || '');
     }
+
+    try {
+      const perfil = await obtenerPerfil();
+      setCorreo(perfil.correo);
+      setFoto(perfil.foto || '');
+      setNombre(perfil.nombre);
+      setApellido(perfil.apellido);
+      setTelefono(perfil.telefono || '');
+      setDireccion(perfil.direccion || '');
+      await guardarSesion({
+        ...(sesion || {}),
+        ...perfil,
+        token: sesion?.token,
+        rol: perfil.rol || sesion?.rol,
+      });
+    } catch (error) {
+      if (error.estado === 401) {
+        await cerrarSesion();
+        navigation.getParent()?.replace('InicioSesion');
+        return;
+      }
+      setMensaje(error.message || 'No se pudieron cargar sus datos');
+    }
   };
 
   useEffect(() => {
     cargar();
   }, []);
 
+  // Abre la galería y guarda la foto elegida
   const elegirFoto = async () => {
     const resultado = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -40,40 +66,69 @@ export default function Perfil({ navigation }) {
     if (!resultado.canceled) {
       const uri = resultado.assets[0].uri;
       setFoto(uri);
-      await actualizarUsuario(correo, { foto: uri });
-      await guardarSesion({ ...(await obtenerSesion()), foto: uri });
-      setMensaje('Foto actualizada');
+      try {
+        const perfil = await actualizarPerfil({ foto: uri });
+        const sesion = await obtenerSesion();
+        await guardarSesion({
+          ...(sesion || {}),
+          ...perfil,
+          token: sesion?.token,
+          rol: perfil.rol || sesion?.rol,
+        });
+        setMensaje('Foto actualizada');
+      } catch (error) {
+        setMensaje(error.message || 'No se pudo guardar la foto');
+      }
     }
   };
 
+  // Guarda los datos editados en el backend y en la sesión
   const guardarDatos = async () => {
+    setMensaje('');
     if (nombre.trim().length < 2 || apellido.trim().length < 2) {
       setMensaje('Ingrese nombre y apellido');
       return;
     }
-    const cambios = { nombre: nombre.trim(), apellido: apellido.trim(), telefono, direccion: direccion.trim() };
-    await actualizarUsuario(correo, cambios);
-    await guardarSesion({ ...(await obtenerSesion()), ...cambios });
-    setMensaje('Datos actualizados');
+
+    try {
+      const perfil = await actualizarPerfil({
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        telefono,
+        direccion: direccion.trim(),
+      });
+      const sesion = await obtenerSesion();
+      await guardarSesion({
+        ...(sesion || {}),
+        ...perfil,
+        token: sesion?.token,
+        rol: perfil.rol || sesion?.rol,
+      });
+      setMensaje('Datos actualizados');
+    } catch (error) {
+      setMensaje(error.message || 'No se pudieron guardar los datos');
+    }
   };
 
+  // Cambia la contraseña en el backend
   const cambiarClave = async () => {
-    const sesion = await obtenerSesion();
-    if (!sesion || claveActual !== sesion.clave) {
-      setMensaje('Su contraseña actual no es correcta');
-      return;
-    }
+    setMensaje('');
     if (claveNueva.length < 6) {
       setMensaje('La nueva debe tener 6 caracteres');
       return;
     }
-    await actualizarUsuario(correo, { clave: claveNueva });
-    await guardarSesion({ ...sesion, clave: claveNueva });
-    setClaveActual('');
-    setClaveNueva('');
-    setMensaje('Contraseña actualizada');
+
+    try {
+      const respuesta = await cambiarClaveApi(claveActual, claveNueva);
+      setClaveActual('');
+      setClaveNueva('');
+      setMensaje(respuesta?.mensaje || 'Contraseña actualizada');
+    } catch (error) {
+      setMensaje(error.message || 'No se pudo cambiar la contraseña');
+    }
   };
 
+  // Cierra sesión y vuelve al login
   const salir = async () => {
     await cerrarSesion();
     navigation.getParent()?.replace('InicioSesion');
