@@ -9,46 +9,32 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { solicitar } from '../../servicios/api';
 
-const PEDIDOS_INICIALES = [
-  {
-    id: 'PED-1042',
-    fecha: '08/10/2026',
-    estado: 'Entregado',
-    colorEstado: '#2ECC71',
-    metodoPago: 'Transferencia BCP',
-    articulos: [
-      { nombre: 'Hilo Poliéster 150D', cantidad: 4, precioUnit: 12.5, subtotal: 50.0 },
-      { nombre: 'Hilo Nylon Industrial', cantidad: 2, precioUnit: 15.0, subtotal: 30.0 },
-    ],
-    total: 80.0,
-  },
-  {
-    id: 'PED-1039',
-    fecha: '25/09/2026',
-    estado: 'En camino',
-    colorEstado: '#F39C12',
-    metodoPago: 'Yape / Plin',
-    articulos: [
-      { nombre: 'Hilo Poliéster 300D', cantidad: 3, precioUnit: 18.5, subtotal: 55.5 },
-    ],
-    total: 55.5,
-  },
-  {
-    id: 'PED-1021',
-    fecha: '12/09/2026',
-    estado: 'Entregado',
-    colorEstado: '#2ECC71',
-    metodoPago: 'Tarjeta de Crédito',
-    articulos: [
-      { nombre: 'Hilo Texturizado 75D', cantidad: 5, precioUnit: 9.8, subtotal: 49.0 },
-      { nombre: 'Hilo Poliéster 150D', cantidad: 2, precioUnit: 12.5, subtotal: 25.0 },
-    ],
-    total: 74.0,
-  },
-];
+// Adapta un pedido del backend (tabla pedidos) a la forma que usa esta pantalla
+const adaptarPedido = (p) => {
+  const estado = p.estado === 'entregado' ? 'Entregado' : 'En camino';
+  return {
+    id: p.idPedido,
+    idUsuario: p.idUsuario,
+    cliente: p.cliente,
+    fecha: p.fechaGeneracion,
+    estado,
+    colorEstado: estado === 'Entregado' ? '#2ECC71' : '#F39C12',
+    idProductos: p.idProductos || [],
+    articulos: (p.productos || []).map((art) => ({
+      productoId: art.productoId,
+      nombre: art.nombre,
+      cantidad: Number(art.cantidad) || 0,
+      precioUnit: Number(art.precioUnitario) || 0,
+      subtotal: Number(art.importe) || 0,
+    })),
+    subtotal: Number(p.subtotal) || 0,
+    igv: Number(p.igv) || 0,
+    total: Number(p.total) || 0,
+  };
+};
 
 export default function Compras({ navigation }) {
   const [pedidos, setPedidos] = useState([]);
@@ -56,15 +42,11 @@ export default function Compras({ navigation }) {
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Lista los pedidos del usuario: GET /api/pedidos/mis-pedidos
   const cargarPedidos = async () => {
     try {
-      const guardados = await AsyncStorage.getItem('@historial_pedidos');
-      if (guardados !== null) {
-        setPedidos(JSON.parse(guardados));
-      } else {
-        await AsyncStorage.setItem('@historial_pedidos', JSON.stringify(PEDIDOS_INICIALES));
-        setPedidos(PEDIDOS_INICIALES);
-      }
+      const datos = await solicitar('/api/pedidos/mis-pedidos');
+      setPedidos(Array.isArray(datos) ? datos.map(adaptarPedido) : []);
     } catch (e) {
       console.log('Error al leer pedidos:', e);
     }
@@ -77,9 +59,16 @@ export default function Compras({ navigation }) {
     }, [])
   );
 
-  const abrirRecibo = (pedido) => {
+  // Detalle del pedido según su id: GET /api/pedidos/{id}
+  const abrirRecibo = async (pedido) => {
     setPedidoSeleccionado(pedido);
     setModalVisible(true);
+    try {
+      const detalle = await solicitar(`/api/pedidos/${pedido.id}`);
+      setPedidoSeleccionado(adaptarPedido(detalle));
+    } catch (e) {
+      console.log('Error al leer el detalle del pedido:', e);
+    }
   };
 
   const pedidosFiltrados = pedidos.filter((p) => {
@@ -122,7 +111,7 @@ export default function Compras({ navigation }) {
             <View key={pedido.id} style={styles.tarjetaPedido}>
               <View style={styles.filaEncabezado}>
                 <View>
-                  <Text style={styles.numeroPedido}>{pedido.id}</Text>
+                  <Text style={styles.numeroPedido}>Pedido #{pedido.id}</Text>
                   <Text style={styles.fechaPedido}>{pedido.fecha}</Text>
                 </View>
                 <View style={[styles.badgeEstado, { backgroundColor: `${pedido.colorEstado}20` }]}>
@@ -179,10 +168,13 @@ export default function Compras({ navigation }) {
             {pedidoSeleccionado && (
               <>
                 <View style={styles.datosBoleta}>
-                  <Text style={styles.textoDato}>Pedido: <Text style={styles.negrita}>{pedidoSeleccionado.id}</Text></Text>
+                  <Text style={styles.textoDato}>Pedido: <Text style={styles.negrita}>#{pedidoSeleccionado.id}</Text></Text>
+                  <Text style={styles.textoDato}>ID usuario: {pedidoSeleccionado.idUsuario}</Text>
+                  <Text style={styles.textoDato}>Cliente: {pedidoSeleccionado.cliente}</Text>
                   <Text style={styles.textoDato}>Fecha: {pedidoSeleccionado.fecha}</Text>
-                  <Text style={styles.textoDato}>Método: {pedidoSeleccionado.metodoPago}</Text>
                   <Text style={styles.textoDato}>Estado: {pedidoSeleccionado.estado}</Text>
+                  <Text style={styles.textoDato}>ID productos: {pedidoSeleccionado.idProductos.join(', ')}</Text>
+                  <Text style={styles.textoDato}>Cantidades: {pedidoSeleccionado.articulos.map((a) => a.cantidad).join(', ')}</Text>
                 </View>
 
                 <View style={styles.divisor} />
@@ -200,11 +192,11 @@ export default function Compras({ navigation }) {
 
                 <View style={styles.filaResumen}>
                   <Text style={styles.textoResumen}>Subtotal (sin IGV):</Text>
-                  <Text style={styles.textoResumen}>S/ {(pedidoSeleccionado.total / 1.18).toFixed(2)}</Text>
+                  <Text style={styles.textoResumen}>S/ {pedidoSeleccionado.subtotal.toFixed(2)}</Text>
                 </View>
                 <View style={styles.filaResumen}>
                   <Text style={styles.textoResumen}>IGV (18%):</Text>
-                  <Text style={styles.textoResumen}>S/ {(pedidoSeleccionado.total - pedidoSeleccionado.total / 1.18).toFixed(2)}</Text>
+                  <Text style={styles.textoResumen}>S/ {pedidoSeleccionado.igv.toFixed(2)}</Text>
                 </View>
                 <View style={[styles.filaResumen, { marginTop: 6 }]}>
                   <Text style={styles.totalBoleta}>TOTAL:</Text>

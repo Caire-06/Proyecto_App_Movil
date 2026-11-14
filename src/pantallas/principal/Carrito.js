@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { solicitar } from '../../servicios/api';
 
 const PRODUCTOS_CARRITO = '@productos_carrito';
-const HISTORIAL_PEDIDOS = '@historial_pedidos';
 
 export default function Carrito({ navigation }) {
   const [items, setItems] = useState([]);
@@ -81,31 +81,24 @@ export default function Carrito({ navigation }) {
     if (items.length === 0) return;
 
     try {
-      const nuevoPedido = {
-        id: `PED-${Math.floor(1000 + Math.random() * 9000)}`,
-        fecha: new Date().toLocaleDateString('es-PE'),
-        estado: 'En camino',
-        colorEstado: '#F39C12',
-        metodoPago: 'Yape / Transferencia',
-        articulos: items.map(item => ({
-          nombre: item.nombre,
-          cantidad: Number(item.cantidad) || 1,
-          precioUnit: Number(item.precio) || 0,
-          subtotal: (Number(item.precio) || 0) * (Number(item.cantidad) || 1)
-        })),
-        total: totalPagar,
-      };
+      // Genera el pedido en el backend: POST /api/pedidos (PedidoController.generar)
+      await solicitar('/api/pedidos', {
+        metodo: 'POST',
+        cuerpo: {
+          productos: items.map(item => ({
+            productoId: Number(item.id),
+            cantidad: Number(item.cantidad) || 1,
+          })),
+        },
+      });
 
-      const historialData = await AsyncStorage.getItem(HISTORIAL_PEDIDOS);
-      const historialActual = historialData ? JSON.parse(historialData) : [];
-      await AsyncStorage.setItem(HISTORIAL_PEDIDOS, JSON.stringify([nuevoPedido, ...historialActual]));
-
-      // Limpia el carrito y redirige de inmediato a Mis compras
+      // Si todo salió bien: limpia el carrito y redirige a Mis compras
       await AsyncStorage.removeItem(PRODUCTOS_CARRITO);
       setItems([]);
       navigation.navigate('Compras');
     } catch (error) {
       console.error('Error al registrar compra:', error);
+      Alert.alert('No se pudo registrar la compra', error.message);
     }
   };
 
