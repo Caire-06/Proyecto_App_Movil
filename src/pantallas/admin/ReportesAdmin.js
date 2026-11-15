@@ -1,69 +1,182 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 
-const datos = {
-  Semana: { total: 'S/ 890', pedidos: 6, ticket: 'S/ 148', top: 'Hilo Poliéster 150D' },
-  Mes: { total: 'S/ 3420', pedidos: 21, ticket: 'S/ 163', top: 'Hilo Nylon Industrial' },
-  Año: { total: 'S/ 38500', pedidos: 240, ticket: 'S/ 160', top: 'Hilo Poliéster 150D' },
-};
+import { useState, useEffect, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 
-const porCategoria = [
-  { nombre: 'Poliéster', valor: 65 },
-  { nombre: 'Nylon', valor: 25 },
-  { nombre: 'Texturizados', valor: 10 },
-];
+import { obtenerReporte } from '../../servicios/api';
 
 export default function ReportesAdmin() {
   const [filtro, setFiltro] = useState('Mes');
-  const info = datos[filtro];
+  const [info, setInfo] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [actualizando, setActualizando] = useState(false);
+  const [error, setError] = useState('');
+
+  // Consulta los reportes del período seleccionado.
+  const cargarReporte = useCallback(async () => {
+    try {
+      setError('');
+
+      const respuesta = await obtenerReporte(filtro);
+      setInfo(respuesta);
+    } catch (e) {
+      setError(e.message || 'No se pudieron cargar los reportes.');
+    } finally {
+      setCargando(false);
+      setActualizando(false);
+    }
+  }, [filtro]);
+
+  // Actualiza los datos cuando cambia el período.
+  useEffect(() => {
+    cargarReporte();
+  }, [cargarReporte]);
+
+  const actualizar = () => {
+    setActualizando(true);
+    cargarReporte();
+  };
+
+  const formatoMoneda = (valor) => {
+    return `S/ ${Number(valor || 0).toFixed(2)}`;
+  };
 
   return (
     <View style={styles.fondo}>
       <Text style={styles.titulo}>Reportes</Text>
+
       <View style={styles.fila}>
         {['Semana', 'Mes', 'Año'].map((f) => (
           <TouchableOpacity
             key={f}
-            style={[styles.filtro, filtro === f && styles.filtroActivo]}
+            style={[
+              styles.filtro,
+              filtro === f && styles.filtroActivo,
+            ]}
             onPress={() => setFiltro(f)}
           >
-            <Text style={[styles.textoFiltro, filtro === f && styles.textoFiltroActivo]}>{f}</Text>
+            <Text
+              style={[
+                styles.textoFiltro,
+                filtro === f && styles.textoFiltroActivo,
+              ]}
+            >
+              {f}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.filaCajas}>
-          <View style={styles.caja}>
-            <Text style={styles.numero}>{info.total}</Text>
-            <Text style={styles.texto}>Ventas {filtro.toLowerCase()}</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={actualizando}
+            onRefresh={actualizar}
+          />
+        }
+      >
+        {cargando ? (
+          <View style={styles.estado}>
+            <ActivityIndicator size="large" color="#1E65C0" />
+            <Text style={styles.mensaje}>Cargando reportes...</Text>
           </View>
-          <View style={styles.caja}>
-            <Text style={styles.numero}>{info.pedidos}</Text>
-            <Text style={styles.texto}>Pedidos</Text>
+        ) : error ? (
+          <View style={styles.estado}>
+            <Text style={styles.error}>{error}</Text>
+            <TouchableOpacity
+              style={styles.botonReintentar}
+              onPress={actualizar}
+            >
+              <Text style={styles.textoBoton}>Reintentar</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-        <View style={styles.filaCajas}>
-          <View style={styles.caja}>
-            <Text style={styles.numero}>{info.ticket}</Text>
-            <Text style={styles.texto}>Ticket promedio</Text>
-          </View>
-          <View style={styles.caja}>
-            <Text style={styles.numeroTop}>{info.top}</Text>
-            <Text style={styles.texto}>Más vendido</Text>
-          </View>
-        </View>
+        ) : info ? (
+          <>
+            <View style={styles.filaCajas}>
+              <View style={styles.caja}>
+                <Text style={styles.numero}>
+                  {formatoMoneda(info.totalVentas)}
+                </Text>
+                <Text style={styles.texto}>
+                  Ventas {filtro.toLowerCase()}
+                </Text>
+              </View>
 
-        <Text style={styles.seccion}>Ventas por categoría</Text>
-        {porCategoria.map((c) => (
-          <View key={c.nombre} style={styles.barraFila}>
-            <Text style={styles.barraNombre}>{c.nombre}</Text>
-            <View style={styles.barraFondo}>
-              <View style={[styles.barraLlena, { width: c.valor + '%' }]} />
+              <View style={styles.caja}>
+                <Text style={styles.numero}>
+                  {info.cantidadPedidos}
+                </Text>
+                <Text style={styles.texto}>Pedidos</Text>
+              </View>
             </View>
-            <Text style={styles.barraValor}>{c.valor}%</Text>
-          </View>
-        ))}
+
+            <View style={styles.filaCajas}>
+              <View style={styles.caja}>
+                <Text style={styles.numero}>
+                  {formatoMoneda(info.ticketPromedio)}
+                </Text>
+                <Text style={styles.texto}>Ticket promedio</Text>
+              </View>
+
+              <View style={styles.caja}>
+                <Text style={styles.numeroTop}>
+                  {info.productoMasVendido || 'Sin ventas'}
+                </Text>
+                <Text style={styles.texto}>Más vendido</Text>
+              </View>
+            </View>
+
+            <Text style={styles.seccion}>
+              Ventas por categoría
+            </Text>
+
+            {info.ventasPorCategoria?.length > 0 ? (
+              info.ventasPorCategoria.map((c, index) => {
+                const porcentaje = Math.min(
+                  Math.max(Number(c.porcentaje) || 0, 0),
+                  100
+                );
+
+                return (
+                  <View key={`${c.nombre}-${index}`} style={styles.barraFila}>
+                    <Text style={styles.barraNombre}>
+                      {c.nombre}
+                    </Text>
+
+                    <View style={styles.barraFondo}>
+                      <View
+                        style={[
+                          styles.barraLlena,
+                          { width: `${porcentaje}%` },
+                        ]}
+                      />
+                    </View>
+
+                    <Text style={styles.barraValor}>
+                      {porcentaje.toFixed(0)}%
+                    </Text>
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.mensaje}>
+                No hay ventas por categoría en este período.
+              </Text>
+            )}
+          </>
+        ) : (
+          <Text style={styles.mensaje}>
+            No hay información disponible.
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -116,6 +229,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 85,
   },
   numero: {
     fontSize: 17,
@@ -131,6 +246,7 @@ const styles = StyleSheet.create({
   texto: {
     fontSize: 12,
     color: '#8A93A6',
+    textAlign: 'center',
   },
   seccion: {
     fontSize: 15,
@@ -158,6 +274,7 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: '#E8ECF4',
     borderRadius: 5,
+    overflow: 'hidden',
   },
   barraLlena: {
     height: 10,
@@ -170,5 +287,31 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1E65C0',
     textAlign: 'right',
+  },
+  estado: {
+    alignItems: 'center',
+    padding: 30,
+  },
+  mensaje: {
+    fontSize: 13,
+    color: '#8A93A6',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  error: {
+    fontSize: 13,
+    color: '#D32F2F',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  botonReintentar: {
+    backgroundColor: '#1E65C0',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  textoBoton: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

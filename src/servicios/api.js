@@ -6,7 +6,7 @@ const PUERTO = 8080;
 
 // Si la detección automática no funciona (por ejemplo, con Expo en modo túnel),
 // escribe aquí la IP de tu PC. Ejemplo: '192.168.1.25'
-const IP_MANUAL = '';
+const IP_MANUAL = '10.0.2.2';
 
 // Busca la IP de la PC donde está corriendo el backend.
 // En el emulador suele ser 10.0.2.2 y en el celular es la IP de la red local.
@@ -235,4 +235,40 @@ export function listarMovimientos(productoId, tipo) {
   }
   const consulta = parametros.length > 0 ? `?${parametros.join('&')}` : '';
   return solicitar(`/api/almacen/movimientos${consulta}`);
+}
+
+// Obtiene los datos reales del panel principal. Solo administrador.
+export function obtenerResumenDashboard() {
+  return solicitar('/api/dashboard/resumen');
+}
+
+
+// Lista todas las ventas registradas. Solo administrador o almacén.
+
+export function listarPedidos(estado) {
+  const consulta = estado
+    ? `?estado=${encodeURIComponent(estado)}`
+    : '';
+
+  return solicitar(`/api/pedidos${consulta}`);
+}
+
+// Obtiene el detalle de una venta.
+export function obtenerPedido(id) {
+  return solicitar(`/api/pedidos/${id}`);
+}
+
+// Cambia el estado de una venta.
+export function cambiarEstadoPedido(id, estado) {
+  return solicitar(`/api/pedidos/${id}/estado`, {
+    metodo: 'PATCH',
+    cuerpo: { estado },
+  });
+}
+
+// Obtiene los reportes reales según el período seleccionado.
+export function obtenerReporte(periodo) {
+  return solicitar(
+    `/api/reportes/resumen?periodo=${encodeURIComponent(periodo.toLowerCase())}`
+  );
 }

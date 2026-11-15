@@ -1,60 +1,154 @@
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+
+import { useEffect, useState, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl
+} from 'react-native';
+
+import { obtenerResumenDashboard } from '../../servicios/api';
 
 export default function DashboardAdmin() {
+  const [datos, setDatos] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
+
+  const cargarDashboard = useCallback(async () => {
+    try {
+      setError('');
+      const respuesta = await obtenerResumenDashboard();
+      setDatos(respuesta);
+    } catch (e) {
+      setError(e.message || 'No se pudieron cargar los datos');
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarDashboard();
+  }, [cargarDashboard]);
+
+  const moneda = (valor) =>
+    `S/ ${Number(valor || 0).toFixed(2)}`;
+
+  if (cargando) {
+    return (
+      <View style={styles.cargando}>
+        <ActivityIndicator size="large" color="#1E65C0" />
+        <Text style={styles.textoCargando}>Cargando panel...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.cargando}>
+        <Text style={styles.error}>{error}</Text>
+        <Text style={styles.reintentar} onPress={cargarDashboard}>
+          Volver a intentar
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.fondo}>
       <Text style={styles.titulo}>Panel</Text>
-      <ScrollView showsVerticalScrollIndicator={false}>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={cargando}
+            onRefresh={cargarDashboard}
+          />
+        }
+      >
         <View style={styles.fila}>
           <View style={styles.caja}>
-            <Text style={styles.numero}>S/ 1587</Text>
+            <Text style={styles.numero}>
+              {moneda(datos.totalVendido)}
+            </Text>
             <Text style={styles.texto}>Total vendido</Text>
           </View>
+
           <View style={styles.caja}>
-            <Text style={styles.numero}>12</Text>
+            <Text style={styles.numero}>
+              {datos.cantidadPedidos}
+            </Text>
             <Text style={styles.texto}>Pedidos</Text>
           </View>
         </View>
+
         <View style={styles.fila}>
           <View style={styles.caja}>
-            <Text style={styles.numero}>4</Text>
+            <Text style={styles.numero}>
+              {datos.cantidadProductos}
+            </Text>
             <Text style={styles.texto}>Productos</Text>
           </View>
+
           <View style={styles.caja}>
-            <Text style={styles.numero}>8</Text>
+            <Text style={styles.numero}>
+              {datos.cantidadUsuarios}
+            </Text>
             <Text style={styles.texto}>Usuarios</Text>
           </View>
         </View>
 
         <Text style={styles.seccion}>Ventas recientes</Text>
-        <View style={styles.tarjeta}>
-          <Text style={styles.nombre}>VTA-034 - Carmen Ríos</Text>
-          <Text style={styles.dato}>S/ 890</Text>
-        </View>
-        <View style={styles.tarjeta}>
-          <Text style={styles.nombre}>VTA-033 - Pedro Huamán</Text>
-          <Text style={styles.dato}>S/ 265</Text>
-        </View>
+
+        {datos.ventasRecientes.length > 0 ? (
+          datos.ventasRecientes.map((venta) => (
+            <View style={styles.tarjeta} key={venta.idPedido}>
+              <Text style={styles.nombre}>
+                Pedido #{venta.idPedido} - {venta.cliente}
+              </Text>
+              <Text style={styles.dato}>
+                {moneda(venta.total)} · {venta.fecha}
+              </Text>
+              <Text style={styles.estado}>{venta.estado}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.vacio}>Todavía no hay ventas registradas.</Text>
+        )}
 
         <Text style={styles.seccion}>Más vendidos</Text>
-        <View style={styles.tarjeta}>
-          <Text style={styles.nombre}>Hilo Poliéster 150D</Text>
-          <Text style={styles.dato}>120 vendidos</Text>
-        </View>
-        <View style={styles.tarjeta}>
-          <Text style={styles.nombre}>Hilo Nylon Industrial</Text>
-          <Text style={styles.dato}>85 vendidos</Text>
-        </View>
+
+        {datos.productosMasVendidos.length > 0 ? (
+          datos.productosMasVendidos.map((producto) => (
+            <View style={styles.tarjeta} key={producto.idProducto}>
+              <Text style={styles.nombre}>{producto.nombre}</Text>
+              <Text style={styles.dato}>
+                {producto.vendidos} vendidos
+              </Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.vacio}>No hay productos vendidos.</Text>
+        )}
 
         <Text style={styles.seccion}>Alertas de inventario</Text>
-        <View style={styles.alerta}>
-          <Text style={styles.nombre}>Hilo Texturizado 75D</Text>
-          <Text style={styles.alertaTexto}>Stock bajo: 42 unidades</Text>
-        </View>
-        <View style={styles.alerta}>
-          <Text style={styles.nombre}>Hilo Poliéster 300D</Text>
-          <Text style={styles.alertaTexto}>Stock bajo: 98 unidades</Text>
-        </View>
+
+        {datos.alertasInventario.length > 0 ? (
+          datos.alertasInventario.map((alerta) => (
+            <View style={styles.alerta} key={alerta.id}>
+              <Text style={styles.nombre}>{alerta.nombre}</Text>
+              <Text style={styles.alertaTexto}>
+                Stock bajo: {alerta.stock} unidades
+              </Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.vacio}>
+            No hay alertas de inventario.
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -66,6 +160,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F3F8',
     paddingTop: 45,
     paddingHorizontal: 15,
+  },
+  cargando: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F3F8',
+  },
+  textoCargando: {
+    marginTop: 10,
+    color: '#8A93A6',
+  },
+  error: {
+    color: '#D32F2F',
+    textAlign: 'center',
+    marginHorizontal: 20,
+  },
+  reintentar: {
+    color: '#1E65C0',
+    fontWeight: 'bold',
+    marginTop: 15,
   },
   titulo: {
     fontSize: 20,
@@ -115,6 +229,13 @@ const styles = StyleSheet.create({
   dato: {
     fontSize: 12,
     color: '#8A93A6',
+    marginTop: 3,
+  },
+  estado: {
+    fontSize: 11,
+    color: '#1E65C0',
+    marginTop: 4,
+    textTransform: 'capitalize',
   },
   alerta: {
     backgroundColor: '#FFF7E6',
@@ -126,5 +247,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#B7791F',
     fontWeight: 'bold',
+  },
+  vacio: {
+    fontSize: 12,
+    color: '#8A93A6',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
   },
 });
