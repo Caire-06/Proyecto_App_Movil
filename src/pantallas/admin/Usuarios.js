@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
-import { cerrarSesion } from '../../guardado/guardadoAcceso';
 import { listarUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../../servicios/api';
 
 const roles = [
@@ -10,13 +9,21 @@ const roles = [
   { valor: 'admin', texto: 'Administrador' },
 ];
 
+const rolesPersonal = [
+  { valor: 'almacen', texto: 'Almacén' },
+  { valor: 'admin', texto: 'Administrador' },
+];
+
+const rolesClientes = [{ valor: 'cliente', texto: 'Cliente' }];
+
 const nombreRol = (valor) => {
   const encontrado = roles.find((r) => r.valor === valor);
   return encontrado ? encontrado.texto : valor;
 };
 
-export default function Usuarios({ navigation }) {
+export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
+  const [grupo, setGrupo] = useState('personal');
   const [modalAgregar, setModalAgregar] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [usuarioEditado, setUsuarioEditado] = useState(null);
@@ -156,35 +163,67 @@ export default function Usuarios({ navigation }) {
     }
   };
 
-  const salir = async () => {
-    await cerrarSesion();
-    navigation.getParent()?.replace('InicioSesion');
-  };
+  const personal = usuarios.filter((u) => u.rol === 'admin' || u.rol === 'almacen');
+  const clientes = usuarios.filter((u) => u.rol === 'cliente');
+  const visibles = grupo === 'personal' ? personal : clientes;
+  const rolesDisponibles = grupo === 'personal' ? rolesPersonal : rolesClientes;
 
   return (
     <View style={styles.fondo}>
       <View style={styles.cabecera}>
         <Text style={styles.titulo}>Gestión de usuarios</Text>
-        <TouchableOpacity onPress={salir}>
-          <Text style={styles.salir}>Salir</Text>
+      </View>
+
+      <View style={styles.segmento}>
+        <TouchableOpacity
+          style={[styles.segmentoBoton, grupo === 'personal' && styles.segmentoActivo]}
+          onPress={() => {
+            setMensaje('');
+            setGrupo('personal');
+          }}
+        >
+          <Text style={grupo === 'personal' ? styles.segmentoTextoActivo : styles.segmentoTexto}>
+            Personal ({personal.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentoBoton, grupo === 'clientes' && styles.segmentoActivo]}
+          onPress={() => {
+            setMensaje('');
+            setGrupo('clientes');
+          }}
+        >
+          <Text style={grupo === 'clientes' ? styles.segmentoTextoActivo : styles.segmentoTexto}>
+            Clientes ({clientes.length})
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.botonAgregar}
-        onPress={() => {
-          setMensaje('');
-          setModalAgregar(true);
-        }}
-      >
-        <Text style={styles.textoBoton}>+ Agregar usuario</Text>
-      </TouchableOpacity>
+      {grupo === 'personal' && (
+        <TouchableOpacity
+          style={styles.botonAgregar}
+          onPress={() => {
+            setMensaje('');
+            setRol('almacen');
+            setModalAgregar(true);
+          }}
+        >
+          <Text style={styles.textoBoton}>+ Agregar personal</Text>
+        </TouchableOpacity>
+      )}
 
       {mensaje !== '' && <Text style={styles.mensaje}>{mensaje}</Text>}
 
       <FlatList
-        data={usuarios}
+        data={visibles}
         keyExtractor={(item) => String(item.id)}
+        ListEmptyComponent={
+          <Text style={styles.vacio}>
+            {grupo === 'personal'
+              ? 'No hay personal registrado.'
+              : 'No hay clientes registrados.'}
+          </Text>
+        }
         renderItem={({ item }) => (
           <View style={styles.tarjeta}>
             <View style={styles.info}>
@@ -212,7 +251,7 @@ export default function Usuarios({ navigation }) {
             <TextInput style={styles.input} placeholder="Dirección" value={direccion} onChangeText={setDireccion} />
             <TextInput style={styles.input} placeholder="Clave" value={clave} onChangeText={setClave} secureTextEntry={true} />
             <View style={styles.fila}>
-              {roles.map((r) => (
+              {rolesDisponibles.map((r) => (
                 <TouchableOpacity
                   key={r.valor}
                   style={[styles.rol, rol === r.valor && styles.rolActivo]}
@@ -246,7 +285,7 @@ export default function Usuarios({ navigation }) {
             <TextInput style={styles.input} placeholder="Dirección" value={editDireccion} onChangeText={setEditDireccion} />
             <TextInput style={styles.input} placeholder="Nueva contraseña" value={editClave} onChangeText={setEditClave} secureTextEntry={true} />
             <View style={styles.fila}>
-              {roles.map((r) => (
+              {rolesDisponibles.map((r) => (
                 <TouchableOpacity
                   key={r.valor}
                   style={[styles.rol, editRol === r.valor && styles.rolActivo]}
@@ -290,10 +329,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0D1B3E',
   },
-  salir: {
-    fontSize: 14,
+  segmento: {
+    flexDirection: 'row',
+    backgroundColor: '#E8ECF4',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 12,
+  },
+  segmentoBoton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  segmentoActivo: {
+    backgroundColor: '#1E65C0',
+  },
+  segmentoTexto: {
+    fontSize: 13,
     fontWeight: 'bold',
-    color: '#E53935',
+    color: '#8A93A6',
+  },
+  segmentoTextoActivo: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  vacio: {
+    fontSize: 12,
+    color: '#8A93A6',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    textAlign: 'center',
   },
   botonAgregar: {
     backgroundColor: '#1E65C0',

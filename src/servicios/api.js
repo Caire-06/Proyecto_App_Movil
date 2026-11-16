@@ -188,6 +188,24 @@ export function listarCategorias() {
   return solicitar('/api/productos/categorias', { conToken: false });
 }
 
+// Lista las categorías con su descripción. Solo admin o almacén.
+export function listarCategoriasCompletas() {
+  return solicitar('/api/categorias');
+}
+
+// Crea una categoría nueva. Solo administrador.
+export function crearCategoria(datos) {
+  return solicitar('/api/categorias', {
+    metodo: 'POST',
+    cuerpo: datos,
+  });
+}
+
+// Lista todos los productos, incluidos los dados de baja. Solo administrador.
+export function listarTodosLosProductos() {
+  return solicitar('/api/productos/todos');
+}
+
 // Crea un producto nuevo. Solo admin o almacén.
 export function crearProducto(datos) {
   return solicitar('/api/productos', {

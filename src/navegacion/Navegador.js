@@ -9,6 +9,7 @@ import Usuarios from '../pantallas/admin/Usuarios';
 import VentasAdmin from '../pantallas/admin/VentasAdmin';
 import DashboardAdmin from '../pantallas/admin/DashboardAdmin';
 import ReportesAdmin from '../pantallas/admin/ReportesAdmin';
+import ProductosAdmin from '../pantallas/admin/ProductosAdmin';
 import DashboardAlmacen from '../pantallas/almacen/DashboardAlmacen';
 import InventarioAlmacen from '../pantallas/almacen/InventarioAlmacen';
 import AgregarProducto from '../pantallas/almacen/AgregarProducto';
@@ -88,6 +89,7 @@ function Admin() {
         headerShown: false,
         tabBarActiveTintColor: '#1E65C0',
         tabBarInactiveTintColor: '#8A93A6',
+        tabBarLabelStyle: { fontSize: 10 },
       }}
     >
       <Pestanas.Screen
@@ -96,6 +98,15 @@ function Admin() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid" size={size} color={color} />
+          ),
+        }}
+      />
+      <Pestanas.Screen
+        name="Productos"
+        component={ProductosAdmin}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube" size={size} color={color} />
           ),
         }}
       />
@@ -123,6 +134,15 @@ function Admin() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
+          ),
+        }}
+      />
+      <Pestanas.Screen
+        name="Perfil"
+        component={Perfil}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />
@@ -182,6 +202,15 @@ function Almacen() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="swap-vertical" size={size} color={color} />
+          ),
+        }}
+      />
+      <Pestanas.Screen
+        name="Perfil"
+        component={Perfil}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />

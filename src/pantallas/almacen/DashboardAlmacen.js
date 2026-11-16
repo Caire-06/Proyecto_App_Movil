@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { cerrarSesion } from '../../guardado/guardadoAcceso';
 import { obtenerResumenAlmacen } from '../../servicios/api';
 
 const formatearMoneda = (valor) => `S/ ${Number(valor || 0).toFixed(2)}`;
@@ -48,11 +47,6 @@ export default function DashboardAlmacen({ navigation }) {
     await cargar(false);
   };
 
-  const salir = async () => {
-    await cerrarSesion();
-    navigation.getParent()?.replace('InicioSesion');
-  };
-
   const categorias = resumen?.categorias || [];
   const alertas = resumen?.alertas || [];
   const movimientos = resumen?.ultimosMovimientos || [];
@@ -61,9 +55,6 @@ export default function DashboardAlmacen({ navigation }) {
     <View style={styles.fondo}>
       <View style={styles.cabecera}>
         <Text style={styles.titulo}>Almacén</Text>
-        <TouchableOpacity style={styles.botonSalir} onPress={salir}>
-          <Ionicons name="exit-outline" size={20} color="#E53935" />
-        </TouchableOpacity>
       </View>
 
       {mensaje !== '' && <Text style={styles.mensaje}>{mensaje}</Text>}
@@ -195,13 +186,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-  },
-  botonSalir: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E53935',
-    borderRadius: 10,
-    padding: 8,
   },
   contenido: {
     paddingBottom: 30,
