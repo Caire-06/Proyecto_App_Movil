@@ -18,6 +18,7 @@ import MovimientosAlmacen from '../pantallas/almacen/MovimientosAlmacen';
 import Inicio from '../pantallas/principal/Inicio';
 import Catalogo from '../pantallas/principal/Catalogo';
 import Carrito from '../pantallas/principal/Carrito';
+import Checkout from '../pantallas/principal/Checkout';
 import Compras from '../pantallas/principal/Compras';
 import Perfil from '../pantallas/principal/Perfil';
 
@@ -228,6 +229,7 @@ export default function Navegador() {
       <Pila.Screen name="Admin" component={Admin} />
       <Pila.Screen name="Almacen" component={Almacen} />
       <Pila.Screen name="Principal" component={Principal} />
+      <Pila.Screen name="Checkout" component={Checkout} />
     </Pila.Navigator>
   );
 }

@@ -182,43 +182,6 @@ export default function DashboardAdmin() {
           <Text style={styles.vacio}>No hay productos vendidos.</Text>
         )}
 
-        <Text style={styles.seccion}>Alertas de inventario</Text>
-
-        {alertas.length > 0 ? (
-          alertas.map((alerta) => {
-            const sinStock = Number(alerta.stock ?? 0) <= 0;
-            return (
-              <View
-                style={[styles.alerta, sinStock && styles.alertaCritica]}
-                key={alerta.id}
-              >
-                <View style={styles.filaAlerta}>
-                  <Text style={styles.nombre}>{alerta.nombre}</Text>
-                  <Text
-                    style={[
-                      styles.etiquetaNivel,
-                      sinStock ? styles.etiquetaRoja : styles.etiquetaAmbar,
-                    ]}
-                  >
-                    {sinStock ? 'AGOTADO' : 'STOCK BAJO'}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.alertaTexto,
-                    sinStock && styles.alertaTextoCritico,
-                  ]}
-                >
-                  {sinStock
-                    ? 'Sin stock disponible (0 unidades)'
-                    : `Stock bajo: ${alerta.stock} unidades`}
-                </Text>
-              </View>
-            );
-          })
-        ) : (
-          <Text style={styles.vacio}>No hay alertas de inventario.</Text>
-        )}
       </ScrollView>
 
       <Modal
@@ -233,7 +196,7 @@ export default function DashboardAdmin() {
               <View style={styles.filaTituloModal}>
                 <Ionicons name="notifications" size={20} color="#1E65C0" />
                 <Text style={styles.modalTitulo}>
-                  Notificaciones de Stock (Admin)
+                  Notificaciones de stock
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalNotificaciones(false)}>

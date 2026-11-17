@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { solicitar } from '../../servicios/api';
 
 const PRODUCTOS_CARRITO = '@productos_carrito';
 
@@ -69,38 +68,14 @@ export default function Carrito({ navigation }) {
     await AsyncStorage.removeItem(PRODUCTOS_CARRITO);
   };
 
-  // Cálculo del total general
-  const totalPagar = items.reduce((acc, curr) => {
+  // Resumen del carrito: subtotal, IGV (18%) y total, igual que el backend
+  const subtotal = items.reduce((acc, curr) => {
     const precio = Number(curr.precio) || 0;
     const cantidad = Number(curr.cantidad) || 1;
     return acc + (precio * cantidad);
   }, 0);
-
-  // Procesar orden y enviar a Mis compras
-  const finalizarCompra = async () => {
-    if (items.length === 0) return;
-
-    try {
-      // Genera el pedido en el backend: POST /api/pedidos (PedidoController.generar)
-      await solicitar('/api/pedidos', {
-        metodo: 'POST',
-        cuerpo: {
-          productos: items.map(item => ({
-            productoId: Number(item.id),
-            cantidad: Number(item.cantidad) || 1,
-          })),
-        },
-      });
-
-      // Si todo salió bien: limpia el carrito y redirige a Mis compras
-      await AsyncStorage.removeItem(PRODUCTOS_CARRITO);
-      setItems([]);
-      navigation.navigate('Compras');
-    } catch (error) {
-      console.error('Error al registrar compra:', error);
-      Alert.alert('No se pudo registrar la compra', error.message);
-    }
-  };
+  const igv = subtotal * 0.18;
+  const total = subtotal + igv;
 
   return (
     <View style={styles.fondo}>
@@ -167,20 +142,28 @@ export default function Carrito({ navigation }) {
             )}
           />
 
-          {/* Barra inferior fija de cobro */}
+          {/* Barra inferior fija con el resumen y el botón para ir a pagar */}
           <View style={styles.barraInferior}>
+            <View style={styles.filaResumen}>
+              <Text style={styles.labelResumen}>Subtotal</Text>
+              <Text style={styles.valorResumen}>S/ {subtotal.toFixed(2)}</Text>
+            </View>
+            <View style={styles.filaResumen}>
+              <Text style={styles.labelResumen}>IGV (18%)</Text>
+              <Text style={styles.valorResumen}>S/ {igv.toFixed(2)}</Text>
+            </View>
             <View style={styles.filaTotal}>
-              <Text style={styles.labelTotal}>Total a pagar:</Text>
-              <Text style={styles.montoTotal}>S/ {totalPagar.toFixed(2)}</Text>
+              <Text style={styles.labelTotal}>Total a pagar</Text>
+              <Text style={styles.montoTotal}>S/ {total.toFixed(2)}</Text>
             </View>
 
             <TouchableOpacity 
               style={styles.botonPagar} 
-              onPress={finalizarCompra}
+              onPress={() => navigation.navigate('Checkout')}
               activeOpacity={0.85}
             >
-              <Ionicons name="bag-check-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={styles.textoBotonPagar}>Finalizar Compra</Text>
+              <Ionicons name="card-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={styles.textoBotonPagar}>Ir a Pagar</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -311,11 +294,30 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
   },
+  filaResumen: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  labelResumen: {
+    fontSize: 13,
+    color: '#8A93A6',
+  },
+  valorResumen: {
+    fontSize: 13,
+    color: '#556987',
+    fontWeight: '600',
+  },
   filaTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
     marginBottom: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F4F9',
   },
   labelTotal: {
     fontSize: 15,

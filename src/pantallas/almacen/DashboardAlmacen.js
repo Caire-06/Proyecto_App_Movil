@@ -274,7 +274,7 @@ export default function DashboardAlmacen({ navigation }) {
               <View style={styles.filaTituloModal}>
                 <Ionicons name="notifications" size={20} color="#1E65C0" />
                 <Text style={styles.modalTitulo}>
-                  Notificaciones de Stock (Almacén)
+                  Notificaciones de stock
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalNotificaciones(false)}>
