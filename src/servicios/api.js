@@ -6,7 +6,7 @@ const PUERTO = 8080;
 
 // Si la detección automática no funciona (por ejemplo, con Expo en modo túnel),
 // escribe aquí la IP de tu PC. Ejemplo: '192.168.1.25'
-const IP_MANUAL = '10.0.2.2';
+const IP_MANUAL = '';
 
 // Busca la IP de la PC donde está corriendo el backend.
 // En el emulador suele ser 10.0.2.2 y en el celular es la IP de la red local.

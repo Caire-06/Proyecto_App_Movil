@@ -1,67 +1,59 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { listarCategorias, listarProductos } from '../../servicios/api';
+import { fuenteImagen } from '../../utilidades/imagenesProducto';
 
-const hilosIniciales = [
-  {
-    id: '1',
-    nombre: 'Hilo Poliéster 150D',
-    unidad: 'Cono x 5 kg',
-    precio: 12.5,
-    stock: 120,
-    categoria: 'Poliéster',
-    foto: require('../../../assets/hilo-polieter150.jpg'),
-  },
-  {
-    id: '2',
-    nombre: 'Hilo Nylon Industrial',
-    unidad: 'Cono x 5 kg',
-    precio: 15.0,
-    stock: 80,
-    categoria: 'Nylon',
-    foto: require('../../../assets/hilo-nylon.jpg'),
-  },
-  {
-    id: '3',
-    nombre: 'Hilo Poliéster 300D',
-    unidad: 'Cono x 8 kg',
-    precio: 18.5,
-    stock: 0,
-    categoria: 'Poliéster',
-    foto: require('../../../assets/hilo-poliester300.jpg'),
-  },
-  {
-    id: '4',
-    nombre: 'Hilo Texturizado 75D',
-    unidad: 'Bobina x 3 kg',
-    precio: 9.8,
-    stock: 100,
-    categoria: 'Texturizados',
-    foto: require('../../../assets/hilo-texturizado75.jpg'),
-  },
-];
-
-const categorias = ['Todos', 'Poliéster', 'Nylon', 'Texturizados'];
 const PRODUCTOS_CARRITO = '@productos_carrito';
+const imagenPorDefecto = require('../../../assets/logo-sautex.png');
 
 export async function agregarAlCarrito(producto) {
-  if (!producto || producto.stock <= 0) {
+  if (!producto || Number(producto.stock ?? 0) <= 0) {
     return { ok: false, mensaje: 'Este producto no tiene stock disponible.' };
   }
 
   try {
     const datosActuales = await AsyncStorage.getItem(PRODUCTOS_CARRITO);
     const carrito = datosActuales ? JSON.parse(datosActuales) : [];
-    const indice = carrito.findIndex((item) => item.id === producto.id);
+    const idProd = String(producto.id);
+    const indice = carrito.findIndex((item) => String(item.id) === idProd);
+
+    const fotoResuelta =
+      producto.foto || fuenteImagen(producto.imagen) || imagenPorDefecto;
 
     if (indice >= 0) {
+      const nuevaCantidad = (carrito[indice].cantidad || 1) + 1;
+      if (nuevaCantidad > Number(producto.stock)) {
+        return {
+          ok: false,
+          mensaje: `Solo hay ${producto.stock} unidades disponibles en stock.`,
+        };
+      }
       carrito[indice] = {
         ...carrito[indice],
-        cantidad: (carrito[indice].cantidad || 1) + 1,
+        cantidad: nuevaCantidad,
       };
     } else {
-      carrito.push({ ...producto, cantidad: 1 });
+      carrito.push({
+        ...producto,
+        id: idProd,
+        unidad: producto.unidad || producto.presentacion || producto.categoria || 'Unidad',
+        foto: fotoResuelta,
+        cantidad: 1,
+      });
     }
 
     await AsyncStorage.setItem(PRODUCTOS_CARRITO, JSON.stringify(carrito));
@@ -74,22 +66,67 @@ export async function agregarAlCarrito(producto) {
 
 export default function Catalogo() {
   const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState(['Todos']);
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('Todos');
   const [cargando, setCargando] = useState(true);
+  const [refrescando, setRefrescando] = useState(false);
+  const [error, setError] = useState('');
 
-  // Carga el catálogo inicial al abrir la pantalla.
-  // Más adelante, esta carga se puede reemplazar por una petición fetch a una API REST.
-  useEffect(() => {
-    setProductos(hilosIniciales);
-    setCargando(false);
+  const cargarCatalogo = useCallback(async (mostrarCarga = false) => {
+    if (mostrarCarga) {
+      setCargando(true);
+    }
+    try {
+      setError('');
+      const [respProductos, respCategorias] = await Promise.all([
+        listarProductos(),
+        listarCategorias().catch(() => []),
+      ]);
+
+      const listaProd = Array.isArray(respProductos)
+        ? respProductos
+        : respProductos?.productos || [];
+      setProductos(listaProd);
+
+      const listaCatRaw = Array.isArray(respCategorias)
+        ? respCategorias
+        : respCategorias?.categorias || [];
+      const nombresCat = listaCatRaw
+        .map((c) => (typeof c === 'string' ? c : c?.nombre || c?.categoria))
+        .filter(Boolean);
+
+      if (nombresCat.length > 0) {
+        setCategorias(['Todos', ...new Set(nombresCat)]);
+      } else {
+        const extraidas = listaProd.map((p) => p.categoria).filter(Boolean);
+        setCategorias(['Todos', ...new Set(extraidas)]);
+      }
+    } catch (e) {
+      setError(e.message || 'No se pudo conectar con el servidor para cargar el catálogo.');
+    } finally {
+      setCargando(false);
+      setRefrescando(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarCatalogo(true);
+    }, [cargarCatalogo])
+  );
+
+  const refrescar = async () => {
+    setRefrescando(true);
+    await cargarCatalogo(false);
+  };
 
   const productosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
     return productos.filter((producto) => {
-      const coincideNombre = producto.nombre.toLowerCase().includes(texto);
+      const nombre = (producto.nombre || '').toLowerCase();
+      const coincideNombre = nombre.includes(texto);
       const coincideCategoria =
         categoriaSeleccionada === 'Todos' ||
         producto.categoria === categoriaSeleccionada;
@@ -141,7 +178,12 @@ export default function Catalogo() {
               style={[styles.chipCategoria, seleccionada && styles.chipSeleccionado]}
               onPress={() => setCategoriaSeleccionada(categoria)}
             >
-              <Text style={[styles.textoCategoria, seleccionada && styles.textoCategoriaSeleccionada]}>
+              <Text
+                style={[
+                  styles.textoCategoria,
+                  seleccionada && styles.textoCategoriaSeleccionada,
+                ]}
+              >
                 {categoria}
               </Text>
             </TouchableOpacity>
@@ -155,7 +197,22 @@ export default function Catalogo() {
       </Text>
 
       {cargando ? (
-        <Text style={styles.mensajeEstado}>Cargando catálogo...</Text>
+        <View style={styles.vacio}>
+          <ActivityIndicator size="large" color="#1E65C0" />
+          <Text style={styles.mensajeEstado}>Cargando catálogo desde el servidor...</Text>
+        </View>
+      ) : error !== '' ? (
+        <View style={styles.vacio}>
+          <Ionicons name="cloud-offline-outline" size={38} color="#D32F2F" />
+          <Text style={styles.textoVacio}>Error de conexión</Text>
+          <Text style={styles.subtextoVacio}>{error}</Text>
+          <TouchableOpacity
+            style={styles.botonReintentar}
+            onPress={() => cargarCatalogo(true)}
+          >
+            <Text style={styles.textoReintentar}>Volver a intentar</Text>
+          </TouchableOpacity>
+        </View>
       ) : productosFiltrados.length === 0 ? (
         <View style={styles.vacio}>
           <Ionicons name="search-outline" size={36} color="#8A93A6" />
@@ -166,25 +223,37 @@ export default function Catalogo() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.grilla}
+          refreshControl={
+            <RefreshControl
+              refreshing={refrescando}
+              onRefresh={refrescar}
+              colors={['#1E65C0']}
+            />
+          }
         >
           {productosFiltrados.map((producto) => {
-            const sinStock = producto.stock <= 0;
+            const stockActual = Number(producto.stock ?? 0);
+            const sinStock = stockActual <= 0;
+            const imgSource =
+              fuenteImagen(producto.imagen || producto.foto) || imagenPorDefecto;
 
             return (
-              <View key={producto.id} style={styles.tarjetaHilo}>
-                <Image
-                  source={producto.foto}
-                  style={styles.fotoHilo}
-                  resizeMode="cover"
-                />
-                <Text style={styles.nombreHilo}>{producto.nombre}</Text>
-                <Text style={styles.unidadHilo}>{producto.unidad}</Text>
-                <Text style={styles.stock}>
-                  {sinStock ? 'Sin stock' : `Stock: ${producto.stock}`}
+              <View key={String(producto.id)} style={styles.tarjetaHilo}>
+                <Image source={imgSource} style={styles.fotoHilo} resizeMode="cover" />
+                <Text style={styles.nombreHilo} numberOfLines={2}>
+                  {producto.nombre}
+                </Text>
+                <Text style={styles.unidadHilo}>
+                  {producto.unidad || producto.presentacion || producto.categoria || 'Cono industrial'}
+                </Text>
+                <Text style={[styles.stock, sinStock && styles.sinStock]}>
+                  {sinStock ? 'Sin stock' : `Stock: ${stockActual}`}
                 </Text>
 
                 <View style={styles.filaPrecio}>
-                  <Text style={styles.precio}>S/ {producto.precio.toFixed(2)}</Text>
+                  <Text style={styles.precio}>
+                    S/ {Number(producto.precio || 0).toFixed(2)}
+                  </Text>
                   <TouchableOpacity
                     style={[styles.botonMas, sinStock && styles.botonDeshabilitado]}
                     onPress={() => manejarAgregar(producto)}
@@ -316,9 +385,13 @@ const styles = StyleSheet.create({
   },
   stock: {
     fontSize: 11,
-    color: '#68758B',
+    color: '#2E9E5B',
+    fontWeight: '600',
     marginTop: 5,
     marginBottom: 8,
+  },
+  sinStock: {
+    color: '#E53935',
   },
   filaPrecio: {
     flexDirection: 'row',
@@ -346,7 +419,7 @@ const styles = StyleSheet.create({
   mensajeEstado: {
     textAlign: 'center',
     color: '#68758B',
-    marginTop: 30,
+    marginTop: 12,
   },
   vacio: {
     flex: 1,
@@ -367,5 +440,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+  botonReintentar: {
+    marginTop: 14,
+    backgroundColor: '#1E65C0',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  textoReintentar: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
 });
-

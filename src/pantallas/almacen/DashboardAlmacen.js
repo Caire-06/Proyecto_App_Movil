@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,8 @@ export default function DashboardAlmacen({ navigation }) {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [modalNotificaciones, setModalNotificaciones] = useState(false);
+  const [alertasRevisadas, setAlertasRevisadas] = useState(false);
 
   const cargar = useCallback(async (mostrarCarga = false) => {
     if (mostrarCarga) {
@@ -27,6 +30,7 @@ export default function DashboardAlmacen({ navigation }) {
     try {
       const datos = await obtenerResumenAlmacen();
       setResumen(datos);
+      setAlertasRevisadas(false);
       setMensaje('');
     } catch (error) {
       setMensaje(error.message || 'No se pudo cargar el panel de almacén');
@@ -50,11 +54,35 @@ export default function DashboardAlmacen({ navigation }) {
   const categorias = resumen?.categorias || [];
   const alertas = resumen?.alertas || [];
   const movimientos = resumen?.ultimosMovimientos || [];
+  const agotados = alertas.filter((p) => Number(p.stock ?? 0) <= 0).length;
+  const notificacionesPendientes = alertasRevisadas ? 0 : alertas.length;
 
   return (
     <View style={styles.fondo}>
       <View style={styles.cabecera}>
-        <Text style={styles.titulo}>Almacén</Text>
+        <View>
+          <Text style={styles.titulo}>Almacén</Text>
+          <Text style={styles.subtitulo}>Control de inventario y alertas de stock</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.botonCampana}
+          onPress={() => setModalNotificaciones(true)}
+        >
+          <Ionicons
+            name={
+              notificacionesPendientes > 0
+                ? 'notifications'
+                : 'notifications-outline'
+            }
+            size={22}
+            color="#0D1B3E"
+          />
+          {notificacionesPendientes > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeTexto}>{notificacionesPendientes}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {mensaje !== '' && <Text style={styles.mensaje}>{mensaje}</Text>}
@@ -69,9 +97,45 @@ export default function DashboardAlmacen({ navigation }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.contenido}
           refreshControl={
-            <RefreshControl refreshing={refrescando} onRefresh={refrescar} colors={['#1E65C0']} />
+            <RefreshControl
+              refreshing={refrescando}
+              onRefresh={refrescar}
+              colors={['#1E65C0']}
+            />
           }
         >
+          {alertas.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.bannerNotificacion,
+                agotados > 0 && styles.bannerCritico,
+              ]}
+              onPress={() => setModalNotificaciones(true)}
+            >
+              <Ionicons
+                name={agotados > 0 ? 'alert-circle' : 'warning'}
+                size={22}
+                color={agotados > 0 ? '#C62828' : '#B7791F'}
+              />
+              <View style={styles.bannerTextos}>
+                <Text
+                  style={[
+                    styles.bannerTitulo,
+                    agotados > 0 && styles.bannerTituloCritico,
+                  ]}
+                >
+                  {agotados > 0
+                    ? `¡Reposición urgente! ${agotados} producto(s) sin stock`
+                    : `${alertas.length} producto(s) requieren reposición`}
+                </Text>
+                <Text style={styles.bannerSub}>
+                  Toca para ver las notificaciones y registrar entradas
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#68758B" />
+            </TouchableOpacity>
+          )}
+
           <View style={styles.fila}>
             <View style={styles.caja}>
               <Text style={styles.numero}>{resumen?.totalProductos ?? 0}</Text>
@@ -85,21 +149,31 @@ export default function DashboardAlmacen({ navigation }) {
 
           <View style={styles.fila}>
             <View style={styles.caja}>
-              <Text style={styles.numero}>{formatearMoneda(resumen?.valorInventario)}</Text>
+              <Text style={styles.numero}>
+                {formatearMoneda(resumen?.valorInventario)}
+              </Text>
               <Text style={styles.texto}>Valor inventario</Text>
             </View>
             <View style={styles.caja}>
-              <Text style={styles.numero}>{resumen?.productosStockBajo ?? 0}</Text>
+              <Text style={styles.numero}>
+                {resumen?.productosStockBajo ?? 0}
+              </Text>
               <Text style={styles.texto}>Stock bajo</Text>
             </View>
           </View>
 
           <View style={styles.acciones}>
-            <TouchableOpacity style={styles.accion} onPress={() => navigation.navigate('Entradas')}>
+            <TouchableOpacity
+              style={styles.accion}
+              onPress={() => navigation.navigate('Entradas')}
+            >
               <Ionicons name="arrow-down-circle" size={22} color="#1E65C0" />
               <Text style={styles.accionTexto}>Registrar entrada</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.accion} onPress={() => navigation.navigate('Kardex')}>
+            <TouchableOpacity
+              style={styles.accion}
+              onPress={() => navigation.navigate('Kardex')}
+            >
               <Ionicons name="swap-vertical" size={22} color="#1E65C0" />
               <Text style={styles.accionTexto}>Ver kardex</Text>
             </TouchableOpacity>
@@ -114,7 +188,8 @@ export default function DashboardAlmacen({ navigation }) {
                 <View style={styles.filaEntre}>
                   <Text style={styles.nombre}>{categoria.categoria}</Text>
                   <Text style={styles.dato}>
-                    {categoria.productos} {categoria.productos === 1 ? 'producto' : 'productos'}
+                    {categoria.productos}{' '}
+                    {categoria.productos === 1 ? 'producto' : 'productos'}
                   </Text>
                 </View>
                 <Text style={styles.dato}>Stock: {categoria.stock} unid.</Text>
@@ -126,16 +201,35 @@ export default function DashboardAlmacen({ navigation }) {
           {alertas.length === 0 ? (
             <Text style={styles.vacioTexto}>No hay productos con stock bajo.</Text>
           ) : (
-            alertas.map((producto) => (
-              <View key={producto.id} style={styles.alerta}>
-                <Text style={styles.nombre}>{producto.nombre}</Text>
-                <Text style={styles.alertaTexto}>
-                  {producto.stock <= 0
-                    ? 'Sin stock'
-                    : `Stock bajo: ${producto.stock} unidades`}
-                </Text>
-              </View>
-            ))
+            alertas.map((producto) => {
+              const sinStock = Number(producto.stock ?? 0) <= 0;
+              return (
+                <View
+                  key={producto.id}
+                  style={[styles.alerta, sinStock && styles.alertaCritica]}
+                >
+                  <View style={styles.filaEntre}>
+                    <Text style={styles.nombre}>{producto.nombre}</Text>
+                    <TouchableOpacity
+                      style={styles.botonReponer}
+                      onPress={() => navigation.navigate('Entradas')}
+                    >
+                      <Text style={styles.textoReponer}>+ Reponer</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text
+                    style={[
+                      styles.alertaTexto,
+                      sinStock && styles.alertaTextoCritico,
+                    ]}
+                  >
+                    {sinStock
+                      ? 'Sin stock (0 unidades)'
+                      : `Stock bajo: ${producto.stock} unidades`}
+                  </Text>
+                </View>
+              );
+            })
           )}
 
           <Text style={styles.seccion}>Últimos movimientos</Text>
@@ -148,7 +242,9 @@ export default function DashboardAlmacen({ navigation }) {
                   <Text
                     style={[
                       styles.tipo,
-                      movimiento.tipo === 'ENTRADA' ? styles.entrada : styles.salida,
+                      movimiento.tipo === 'ENTRADA'
+                        ? styles.entrada
+                        : styles.salida,
                     ]}
                   >
                     {movimiento.tipo}
@@ -157,14 +253,118 @@ export default function DashboardAlmacen({ navigation }) {
                 </View>
                 <Text style={styles.nombre}>{movimiento.productoNombre}</Text>
                 <Text style={styles.dato}>
-                  {movimiento.cantidad} unid. - Stock: {movimiento.stockAnterior} a{' '}
-                  {movimiento.stockNuevo}
+                  {movimiento.cantidad} unid. - Stock: {movimiento.stockAnterior}{' '}
+                  a {movimiento.stockNuevo}
                 </Text>
               </View>
             ))
           )}
         </ScrollView>
       )}
+
+      <Modal
+        visible={modalNotificaciones}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalNotificaciones(false)}
+      >
+        <View style={styles.modalFondo}>
+          <View style={styles.modalCaja}>
+            <View style={styles.modalCabecera}>
+              <View style={styles.filaTituloModal}>
+                <Ionicons name="notifications" size={20} color="#1E65C0" />
+                <Text style={styles.modalTitulo}>
+                  Notificaciones de Stock (Almacén)
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalNotificaciones(false)}>
+                <Ionicons name="close" size={24} color="#68758B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {alertas.length === 0 ? (
+                <View style={styles.sinNotificaciones}>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={42}
+                    color="#2E9E5B"
+                  />
+                  <Text style={styles.sinNotifTitulo}>
+                    Todo el stock está completo
+                  </Text>
+                  <Text style={styles.sinNotifSub}>
+                    No hay alertas de reposición pendientes en el almacén.
+                  </Text>
+                </View>
+              ) : (
+                alertas.map((producto) => {
+                  const sinStock = Number(producto.stock ?? 0) <= 0;
+                  return (
+                    <View
+                      key={producto.id}
+                      style={[
+                        styles.itemNotificacion,
+                        sinStock && styles.alertaCritica,
+                      ]}
+                    >
+                      <Ionicons
+                        name={sinStock ? 'close-circle' : 'warning'}
+                        size={22}
+                        color={sinStock ? '#D32F2F' : '#B7791F'}
+                      />
+                      <View style={styles.itemNotifInfo}>
+                        <Text style={styles.nombre}>{producto.nombre}</Text>
+                        <Text
+                          style={[
+                            styles.alertaTexto,
+                            sinStock && styles.alertaTextoCritico,
+                          ]}
+                        >
+                          {sinStock
+                            ? 'Agotado (0 unidades)'
+                            : `Stock bajo: ${producto.stock} unidades`}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.botonReponer}
+                        onPress={() => {
+                          setModalNotificaciones(false);
+                          navigation.navigate('Entradas');
+                        }}
+                      >
+                        <Text style={styles.textoReponer}>Reponer</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <View style={styles.modalBotones}>
+              {alertas.length > 0 && !alertasRevisadas && (
+                <TouchableOpacity
+                  style={styles.botonMarcarLeido}
+                  onPress={() => {
+                    setAlertasRevisadas(true);
+                    setModalNotificaciones(false);
+                  }}
+                >
+                  <Text style={styles.textoMarcarLeido}>
+                    Marcar notificaciones como leídas
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.botonCerrarModal}
+                onPress={() => setModalNotificaciones(false)}
+              >
+                <Text style={styles.textoCerrarModal}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -181,11 +381,73 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0D1B3E',
   },
+  subtitulo: {
+    fontSize: 12,
+    color: '#8A93A6',
+    marginTop: 2,
+  },
   cabecera: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  botonCampana: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#D32F2F',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeTexto: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  bannerNotificacion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7E6',
+    borderWidth: 1,
+    borderColor: '#F6AD55',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 10,
+  },
+  bannerCritico: {
+    backgroundColor: '#FDE8E8',
+    borderColor: '#FC8181',
+  },
+  bannerTextos: {
+    flex: 1,
+  },
+  bannerTitulo: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#B7791F',
+  },
+  bannerTituloCritico: {
+    color: '#C62828',
+  },
+  bannerSub: {
+    fontSize: 11,
+    color: '#68758B',
+    marginTop: 2,
   },
   contenido: {
     paddingBottom: 30,
@@ -270,11 +532,28 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
   },
+  alertaCritica: {
+    backgroundColor: '#FDE8E8',
+  },
   alertaTexto: {
     fontSize: 12,
     color: '#B7791F',
     fontWeight: 'bold',
     marginTop: 3,
+  },
+  alertaTextoCritico: {
+    color: '#C62828',
+  },
+  botonReponer: {
+    backgroundColor: '#1E65C0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  textoReponer: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   movimiento: {
     backgroundColor: '#fff',
@@ -324,5 +603,87 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
+  },
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(13, 27, 62, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCaja: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 18,
+    maxHeight: '75%',
+  },
+  modalCabecera: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  filaTituloModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitulo: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0D1B3E',
+  },
+  itemNotificacion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7E6',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    gap: 10,
+  },
+  itemNotifInfo: {
+    flex: 1,
+  },
+  sinNotificaciones: {
+    alignItems: 'center',
+    paddingVertical: 28,
+  },
+  sinNotifTitulo: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#0D1B3E',
+    marginTop: 8,
+  },
+  sinNotifSub: {
+    fontSize: 12,
+    color: '#8A93A6',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  modalBotones: {
+    marginTop: 12,
+    gap: 8,
+  },
+  botonMarcarLeido: {
+    backgroundColor: '#EBF4FF',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  textoMarcarLeido: {
+    color: '#1E65C0',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  botonCerrarModal: {
+    backgroundColor: '#0D1B3E',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  textoCerrarModal: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });
