@@ -6,22 +6,30 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import { solicitar } from '../../servicios/api';
 
+// Presentación de cada estado del pedido.
+const ESTADOS = {
+  'en preparación': { texto: 'En preparación', color: '#B7791F' },
+  'en camino': { texto: 'En camino', color: '#1E65C0' },
+  entregado: { texto: 'Entregado', color: '#2ECC71' },
+};
+
 // Adapta un pedido del backend (tabla pedidos) a la forma que usa esta pantalla
 const adaptarPedido = (p) => {
-  const estado = p.estado === 'entregado' ? 'Entregado' : 'En camino';
+  const info = ESTADOS[p.estado] || { texto: p.estado, color: '#8A93A6' };
   return {
     id: p.idPedido,
     idUsuario: p.idUsuario,
     cliente: p.cliente,
     fecha: p.fechaGeneracion,
-    estado,
-    colorEstado: estado === 'Entregado' ? '#2ECC71' : '#F39C12',
+    estado: info.texto,
+    colorEstado: info.color,
     idProductos: p.idProductos || [],
     articulos: (p.productos || []).map((art) => ({
       productoId: art.productoId,
@@ -71,6 +79,32 @@ export default function Compras({ navigation }) {
     }
   };
 
+  // El cliente confirma que recibió su pedido: PATCH /api/pedidos/{id}/estado
+  const confirmarRecepcion = (pedido) => {
+    Alert.alert(
+      'Confirmar recepción',
+      `¿Confirmas que recibiste el pedido #${pedido.id}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, lo recibí',
+          onPress: async () => {
+            try {
+              await solicitar(`/api/pedidos/${pedido.id}/estado`, {
+                metodo: 'PATCH',
+                cuerpo: { estado: 'entregado' },
+              });
+              setModalVisible(false);
+              await cargarPedidos();
+            } catch (e) {
+              Alert.alert('No se pudo confirmar', e.message || 'Inténtalo nuevamente.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const pedidosFiltrados = pedidos.filter((p) => {
     if (filtro === 'Todos') return true;
     return p.estado === filtro;
@@ -85,8 +119,13 @@ export default function Compras({ navigation }) {
       </View>
 
       {/* Filtros por estado */}
-      <View style={styles.filaFiltros}>
-        {['Todos', 'En camino', 'Entregado'].map((tipo) => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filaFiltrosContenedor}
+        contentContainerStyle={styles.filaFiltros}
+      >
+        {['Todos', 'En preparación', 'En camino', 'Entregado'].map((tipo) => (
           <TouchableOpacity
             key={tipo}
             style={[styles.chipFiltro, filtro === tipo && styles.chipFiltroActivo]}
@@ -97,7 +136,7 @@ export default function Compras({ navigation }) {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Lista de pedidos */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -150,6 +189,17 @@ export default function Compras({ navigation }) {
                   <Ionicons name="chevron-forward" size={14} color="#1E65C0" />
                 </TouchableOpacity>
               </View>
+
+              {pedido.estado === 'En camino' && (
+                <TouchableOpacity
+                  style={styles.botonConfirmar}
+                  onPress={() => confirmarRecepcion(pedido)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+                  <Text style={styles.textoConfirmar}>Confirmar recepción</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ))
         )}
@@ -239,6 +289,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8A93A6',
     marginTop: 2,
+  },
+  filaFiltrosContenedor: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
   filaFiltros: {
     flexDirection: 'row',
@@ -355,6 +409,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#1E65C0',
+  },
+  botonConfirmar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#16834A',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  textoConfirmar: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   vacio: {
     alignItems: 'center',

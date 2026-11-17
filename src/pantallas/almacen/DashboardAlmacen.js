@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { obtenerResumenAlmacen } from '../../servicios/api';
+import { obtenerResumenAlmacen, listarPedidos } from '../../servicios/api';
 
 const formatearMoneda = (valor) => `S/ ${Number(valor || 0).toFixed(2)}`;
 
@@ -22,6 +22,7 @@ export default function DashboardAlmacen({ navigation }) {
   const [mensaje, setMensaje] = useState('');
   const [modalNotificaciones, setModalNotificaciones] = useState(false);
   const [alertasRevisadas, setAlertasRevisadas] = useState(false);
+  const [pedidosPendientes, setPedidosPendientes] = useState(0);
 
   const cargar = useCallback(async (mostrarCarga = false) => {
     if (mostrarCarga) {
@@ -37,6 +38,17 @@ export default function DashboardAlmacen({ navigation }) {
     } finally {
       setCargando(false);
       setRefrescando(false);
+    }
+
+    // Cuenta los pedidos que el almacén todavía debe preparar.
+    try {
+      const pedidos = await listarPedidos();
+      const pendientes = Array.isArray(pedidos)
+        ? pedidos.filter((p) => p.estado === 'en preparación').length
+        : 0;
+      setPedidosPendientes(pendientes);
+    } catch (error) {
+      setPedidosPendientes(0);
     }
   }, []);
 
@@ -161,6 +173,30 @@ export default function DashboardAlmacen({ navigation }) {
               <Text style={styles.texto}>Stock bajo</Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.tarjetaPedidos}
+            onPress={() => navigation.navigate('PedidosAlmacen')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.iconoPedidos}>
+              <Ionicons name="clipboard-outline" size={22} color="#1E65C0" />
+            </View>
+            <View style={styles.textosPedidos}>
+              <Text style={styles.tituloPedidos}>Pedidos por preparar</Text>
+              <Text style={styles.subPedidos}>
+                {pedidosPendientes > 0
+                  ? `${pedidosPendientes} pedido(s) en preparación`
+                  : 'No hay pedidos pendientes'}
+              </Text>
+            </View>
+            {pedidosPendientes > 0 && (
+              <View style={styles.contadorPedidos}>
+                <Text style={styles.contadorPedidosTexto}>{pedidosPendientes}</Text>
+              </View>
+            )}
+            <Ionicons name="chevron-forward" size={18} color="#68758B" />
+          </TouchableOpacity>
 
           <View style={styles.acciones}>
             <TouchableOpacity
@@ -496,6 +532,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#1E65C0',
+  },
+  tarjetaPedidos: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 2,
+    marginBottom: 10,
+    gap: 12,
+  },
+  iconoPedidos: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#EBF2FC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textosPedidos: {
+    flex: 1,
+  },
+  tituloPedidos: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0D1B3E',
+  },
+  subPedidos: {
+    fontSize: 12,
+    color: '#8A93A6',
+    marginTop: 2,
+  },
+  contadorPedidos: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#1E65C0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 7,
+  },
+  contadorPedidosTexto: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   seccion: {
     fontSize: 15,

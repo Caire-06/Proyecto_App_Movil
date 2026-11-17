@@ -15,6 +15,7 @@ import InventarioAlmacen from '../pantallas/almacen/InventarioAlmacen';
 import AgregarProducto from '../pantallas/almacen/AgregarProducto';
 import RegistrarEntrada from '../pantallas/almacen/RegistrarEntrada';
 import MovimientosAlmacen from '../pantallas/almacen/MovimientosAlmacen';
+import PedidosAlmacen from '../pantallas/almacen/PedidosAlmacen';
 import Inicio from '../pantallas/principal/Inicio';
 import Catalogo from '../pantallas/principal/Catalogo';
 import Carrito from '../pantallas/principal/Carrito';
@@ -228,6 +229,7 @@ export default function Navegador() {
       <Pila.Screen name="Recuperar" component={Recuperar} />
       <Pila.Screen name="Admin" component={Admin} />
       <Pila.Screen name="Almacen" component={Almacen} />
+      <Pila.Screen name="PedidosAlmacen" component={PedidosAlmacen} />
       <Pila.Screen name="Principal" component={Principal} />
       <Pila.Screen name="Checkout" component={Checkout} />
     </Pila.Navigator>

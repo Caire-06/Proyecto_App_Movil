@@ -16,7 +16,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   listarPedidos,
   obtenerPedido,
-  cambiarEstadoPedido,
 } from '../../servicios/api';
 
 export default function VentasAdmin() {
@@ -25,7 +24,6 @@ export default function VentasAdmin() {
   const [actualizando, setActualizando] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  const [procesando, setProcesando] = useState(false);
 
   const cargarVentas = useCallback(async () => {
     try {
@@ -62,46 +60,19 @@ export default function VentasAdmin() {
     }
   };
 
-  const marcarEntregado = () => {
-    if (!ventaSeleccionada) return;
-
-    Alert.alert(
-      'Confirmar entrega',
-      '¿Deseas marcar esta venta como entregada?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            try {
-              setProcesando(true);
-
-              await cambiarEstadoPedido(
-                ventaSeleccionada.idPedido,
-                'entregado'
-              );
-
-              setVentaSeleccionada({
-                ...ventaSeleccionada,
-                estado: 'entregado',
-              });
-
-              await cargarVentas();
-
-              Alert.alert('Éxito', 'La venta fue marcada como entregada.');
-            } catch (error) {
-              Alert.alert('Error', error.message || 'No se pudo actualizar el estado.');
-            } finally {
-              setProcesando(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const moneda = (valor) =>
     `S/ ${Number(valor || 0).toFixed(2)}`;
+
+  // Texto y color según el estado del pedido.
+  const estadoInfo = (estado) => {
+    if (estado === 'entregado') {
+      return { texto: 'Entregado', estilo: styles.entregado };
+    }
+    if (estado === 'en preparación') {
+      return { texto: 'En preparación', estilo: styles.enPreparacion };
+    }
+    return { texto: 'En camino', estilo: styles.enCamino };
+  };
 
   const renderVenta = ({ item }) => (
     <View style={styles.tarjeta}>
@@ -121,15 +92,8 @@ export default function VentasAdmin() {
 
       <View style={styles.filaEstado}>
         <Text style={styles.dato}>Estado:</Text>
-        <Text
-          style={[
-            styles.estado,
-            item.estado === 'entregado'
-              ? styles.entregado
-              : styles.enCamino,
-          ]}
-        >
-          {item.estado === 'entregado' ? 'Entregado' : 'En camino'}
+        <Text style={[styles.estado, estadoInfo(item.estado).estilo]}>
+          {estadoInfo(item.estado).texto}
         </Text>
       </View>
 
@@ -239,20 +203,8 @@ export default function VentasAdmin() {
                 </View>
 
                 <Text style={styles.estadoDetalle}>
-                  Estado: {ventaSeleccionada.estado}
+                  Estado: {estadoInfo(ventaSeleccionada.estado).texto}
                 </Text>
-
-                {ventaSeleccionada.estado === 'en camino' && (
-                  <TouchableOpacity
-                    style={styles.botonEntregado}
-                    onPress={marcarEntregado}
-                    disabled={procesando}
-                  >
-                    <Text style={styles.textoBoton}>
-                      {procesando ? 'Actualizando...' : 'Marcar como entregado'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
 
                 <TouchableOpacity
                   style={styles.botonCerrar}
@@ -329,6 +281,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#DDF5E7',
   },
   enCamino: {
+    color: '#1E65C0',
+    backgroundColor: '#E4EEFC',
+  },
+  enPreparacion: {
     color: '#B7791F',
     backgroundColor: '#FFF1CC',
   },
@@ -394,13 +350,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 12,
     textTransform: 'capitalize',
-  },
-  botonEntregado: {
-    backgroundColor: '#16834A',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 15,
   },
   botonCerrar: {
     backgroundColor: '#64748B',
